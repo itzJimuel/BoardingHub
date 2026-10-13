@@ -19,12 +19,8 @@ $isSuperAdmin = Auth::isSuperAdmin();
 $isAdmin = Auth::isAdmin();
 $currentUserRole = $user['role'] ?? 'user';
 
-// Access Control: Only Super Admin and Admin have access to system logs.
-// Regular users are forbidden and redirected to their dashboard.
-if (!$isAdmin) {
-  header("Location: dashboard.php");
-  exit();
-}
+// Access Control (all logged-in roles may open logs, scoped below):
+//   Super Admin -> every role, Administrator -> admin + user, User -> user logs only.
 
 $db = new Database();
 $conn = $db->getConnection();
@@ -37,8 +33,10 @@ $activeTab = isset($_GET['tab']) && $_GET['tab'] === 'login' ? 'login' : 'activi
 // Administrator: ONLY activity and logs of its own role (admin) and normal users (user). SUPERADMIN IS STRICTLY EXCLUDED.
 if ($isSuperAdmin) {
   $allowedRoles = ["'superadmin'", "'admin'", "'user'"];
-} else {
+} elseif ($isAdmin) {
   $allowedRoles = ["'admin'", "'user'"];
+} else {
+  $allowedRoles = ["'user'"];
 }
 
 $roleCondition = "role IN (" . implode(',', $allowedRoles) . ")";
@@ -305,11 +303,9 @@ function getCategoryBadge($cat) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Account Activity & System Logs | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
-  <?php if ($isAdmin): ?>
-    <link rel="stylesheet" href="../css/admin.css">
-  <?php endif; ?>
+  <link rel="stylesheet" href="../css/admin.css">
   <style>
     /* Tabs Navigation */
     .logs-nav-tabs {
@@ -341,9 +337,9 @@ function getCategoryBadge($cat) {
     }
     .logs-tab-btn.active {
       color: #fff;
-      background: linear-gradient(135deg, rgba(255, 94, 0, 0.25), rgba(255, 123, 0, 0.15));
-      border-color: rgba(255, 94, 0, 0.6);
-      box-shadow: 0 4px 16px rgba(255, 94, 0, 0.2);
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(6, 182, 212, 0.15));
+      border-color: rgba(37, 99, 235, 0.6);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
     }
     .logs-tab-btn .tab-count {
       padding: 2px 8px;
@@ -353,7 +349,7 @@ function getCategoryBadge($cat) {
       color: #cbd5e1;
     }
     .logs-tab-btn.active .tab-count {
-      background: #ff5e00;
+      background: #2563eb;
       color: #fff;
     }
 
@@ -398,15 +394,15 @@ function getCategoryBadge($cat) {
     }
     .filter-item input:focus,
     .filter-item select:focus {
-      border-color: var(--accent, #ff5e00);
-      box-shadow: 0 0 0 3px rgba(255, 94, 0, 0.2);
+      border-color: var(--accent, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
     }
     .filter-btn-group {
       display: flex;
       gap: 10px;
     }
     .btn-filter-apply {
-      background: linear-gradient(135deg, var(--accent, #ff5e00), #ff7b00);
+      background: linear-gradient(135deg, var(--accent, #2563eb), #06b6d4);
       color: #fff;
       border: none;
       padding: 10px 18px;
@@ -421,7 +417,7 @@ function getCategoryBadge($cat) {
     }
     .btn-filter-apply:hover {
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 94, 0, 0.35);
+      box-shadow: 0 5px 15px rgba(37, 99, 235, 0.35);
     }
     .btn-filter-reset {
       background: rgba(255, 255, 255, 0.08);
@@ -489,9 +485,9 @@ function getCategoryBadge($cat) {
       gap: 4px;
     }
     .role-badge-admin {
-      background: rgba(255, 94, 0, 0.15);
-      color: #ff7b00;
-      border: 1px solid rgba(255, 94, 0, 0.35);
+      background: rgba(37, 99, 235, 0.15);
+      color: #06b6d4;
+      border: 1px solid rgba(37, 99, 235, 0.35);
       padding: 3px 8px;
       border-radius: 6px;
       font-size: 11px;
@@ -577,15 +573,15 @@ function getCategoryBadge($cat) {
       transition: all 0.2s ease;
     }
     .page-link-btn:hover:not(.disabled) {
-      background: var(--accent, #ff5e00);
-      border-color: var(--accent, #ff5e00);
+      background: var(--accent, #2563eb);
+      border-color: var(--accent, #2563eb);
       color: #fff;
     }
     .page-link-btn.active {
-      background: linear-gradient(135deg, var(--accent, #ff5e00), #ff7b00);
-      border-color: var(--accent, #ff5e00);
+      background: linear-gradient(135deg, var(--accent, #2563eb), #06b6d4);
+      border-color: var(--accent, #2563eb);
       color: #fff;
-      box-shadow: 0 4px 12px rgba(255, 94, 0, 0.3);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
     .page-link-btn.disabled {
       opacity: 0.35;
@@ -593,16 +589,16 @@ function getCategoryBadge($cat) {
       pointer-events: none;
     }
   </style>
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
   <!-- Loading Animation -->
   <div class="page-loader">
     <div class="loader">
-      <div class="dumbbell">
-        <div class="bar"></div>
-        <div class="weight left"></div>
-        <div class="weight right"></div>
+      <div class="house-loader-icon">
+        <i class="fas fa-home"></i>
+        <div class="loader-pulse-ring"></div>
       </div>
       <p>Loading Activity Logs...</p>
     </div>
@@ -619,8 +615,10 @@ function getCategoryBadge($cat) {
           <div class="role-badge-pill">
             <?php if ($isSuperAdmin): ?>
               <span class="badge-superadmin"><i class="fas fa-crown"></i> SUPER ADMIN</span>
-            <?php else: ?>
+            <?php elseif ($isAdmin): ?>
               <span class="badge-admin"><i class="fas fa-shield-alt"></i> ADMIN PORTAL</span>
+            <?php else: ?>
+              <span class="badge-admin"><i class="fas fa-user-graduate"></i> RESIDENT</span>
             <?php endif; ?>
           </div>
         </div>
@@ -635,6 +633,13 @@ function getCategoryBadge($cat) {
 
         <nav class="sidebar-nav">
           <ul>
+            <?php if (!$isAdmin): ?>
+            <li><a href="index.php"><i class="fas fa-home"></i> <span>Home</span></a></li>
+            <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> <span>My Dashboard</span></a></li>
+            <li><a href="logs.php" class="active"><i class="fas fa-history"></i> <span>User Logs</span></a></li>
+            <li class="nav-divider"></li>
+            <li><a href="change-password.php"><i class="fas fa-key"></i> <span>Change Password</span></a></li>
+            <?php else: ?>
             <li>
               <a href="dashboard.php">
                 <i class="fas fa-users-cog"></i> <span>Accounts Console</span>
@@ -660,6 +665,9 @@ function getCategoryBadge($cat) {
                 </a>
               </li>
             <?php endif; ?>
+            <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+            <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+            <?php endif; ?>
             <li>
               <a href="logs.php" class="active">
                 <i class="fas fa-history"></i> <span>System Logs</span>
@@ -671,11 +679,7 @@ function getCategoryBadge($cat) {
                 <i class="fas fa-key"></i> <span>Change Password</span>
               </a>
             </li>
-            <li>
-              <a href="logout.php" class="nav-logout">
-                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-              </a>
-            </li>
+            <?php endif; ?>
           </ul>
         </nav>
       </aside>
@@ -704,8 +708,10 @@ function getCategoryBadge($cat) {
               <p>
                 <?php if ($isSuperAdmin): ?>
                   Full system audit stream: Viewing activities across Super Administrator, Administrator, and Member accounts.
-                <?php else: ?>
+                <?php elseif ($isAdmin): ?>
                   Administrator audit stream: Viewing Administrator and Member account activities.
+                <?php else: ?>
+                  Resident view: showing log-in records and activity of user (resident) accounts only.
                 <?php endif; ?>
               </p>
             </div>
@@ -777,6 +783,9 @@ function getCategoryBadge($cat) {
               <div class="filter-item">
                 <label><i class="fas fa-user-tag"></i> Role</label>
                 <select name="role">
+                  <?php if (!$isAdmin): ?>
+                    <option value="user" selected>User / Member</option>
+                  <?php else: ?>
                   <option value="">
                     <?php if ($isSuperAdmin): ?>All Roles<?php else: ?>All (Admin & User)<?php endif; ?>
                   </option>
@@ -785,6 +794,7 @@ function getCategoryBadge($cat) {
                   <?php endif; ?>
                   <option value="admin" <?php echo $filterRole === 'admin' ? 'selected' : ''; ?>>Administrator</option>
                   <option value="user" <?php echo $filterRole === 'user' ? 'selected' : ''; ?>>User / Member</option>
+                  <?php endif; ?>
                 </select>
               </div>
 

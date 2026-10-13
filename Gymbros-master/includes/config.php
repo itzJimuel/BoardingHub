@@ -72,6 +72,13 @@ class Database
       $this->connection->query("ALTER TABLE `users` ADD COLUMN `must_change_password` TINYINT(1) NOT NULL DEFAULT 0 AFTER `privileges`");
     }
 
+    // Email OTP verification flag. Existing accounts default to verified;
+    // new self-registrations are set to 0 until they confirm the emailed OTP.
+    $result = $this->connection->query("SHOW COLUMNS FROM `users` LIKE 'email_verified'");
+    if ($result && $result->num_rows === 0) {
+      $this->connection->query("ALTER TABLE `users` ADD COLUMN `email_verified` TINYINT(1) NOT NULL DEFAULT 1 AFTER `must_change_password`");
+    }
+
     // Check if security_questions table exists
     $result = $this->connection->query("SHOW TABLES LIKE 'security_questions'");
     if ($result && $result->num_rows === 0) {

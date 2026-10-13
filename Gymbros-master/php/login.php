@@ -72,7 +72,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCSRFToken($_POST['c
         $user = Auth::authenticate($username, $password);
         if ($user) {
             $userStatus = $user['status'] ?? 'approved';
-            if ($userStatus === 'pending') {
+            if (isset($user['email_verified']) && (int)$user['email_verified'] === 0) {
+                // Self-registered account that never confirmed its emailed OTP
+                $_SESSION['verify_account'] = [
+                    'id_number' => $user['id_number'],
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'name' => trim($user['first_name'] . ' ' . $user['last_name'])
+                ];
+                $_SESSION['verify_account_send'] = true;
+                header("Location: verify-account.php");
+                exit();
+            } elseif ($userStatus === 'pending') {
                 $errors[] = "Your account registration is pending approval by an administrator.";
             } elseif ($userStatus === 'blocked') {
                 $errors[] = "Your account has been blocked by an administrator.";
@@ -157,9 +168,10 @@ $csrf_token = Security::generateCSRFToken();
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
-<body>
+<body class="bh-auth">
     <header>
         <div class="logo">
             <h1 style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-building" style="font-size: 24px; color: #3b82f6;"></i> Boarding<span>Hub</span></h1>

@@ -243,7 +243,7 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Password Recovery | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/forgot-password.css">
   <style>
     .method-selector {
@@ -262,20 +262,20 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
       transition: all 0.2s ease;
     }
     .method-card:hover {
-      border-color: #ff5e00;
-      background: rgba(255, 94, 0, 0.08);
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.08);
     }
     .method-card input[type="radio"] {
       display: none;
     }
     .method-card.selected {
-      border-color: #ff5e00;
-      background: rgba(255, 94, 0, 0.15);
-      box-shadow: 0 0 10px rgba(255, 94, 0, 0.3);
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.15);
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
     }
     .method-card i {
       font-size: 20px;
-      color: #ff7b00;
+      color: #06b6d4;
       margin-bottom: 6px;
       display: block;
     }
@@ -290,9 +290,10 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
       margin-top: 2px;
     }
   </style>
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
-<body>
+<body class="bh-auth">
   <header>
     <div class="logo">
       <h1>Boarding<span>Hub</span></h1>
@@ -347,8 +348,8 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
 
     <!-- STEP 1: Enter Identifier & Choose Recovery Method -->
     <?php if ($step === 1): ?>
-      <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 18px; font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-user-shield" style="color: var(--accent, #ff5e00); font-size: 18px; flex-shrink: 0;"></i>
+      <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 18px; font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-user-shield" style="color: var(--accent, #2563eb); font-size: 18px; flex-shrink: 0;"></i>
         <span><strong>Admin & Superadmin Accounts:</strong> Enter your administrator email, username, or Employee ID below to receive your secure One-Time PIN (OTP).</span>
       </div>
 
@@ -394,18 +395,18 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
               <i class="fas fa-crown" style="color: #fbbf24;"></i> Super Administrator Account Recovery
             </span>
           <?php else: ?>
-            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; background: rgba(255, 94, 0, 0.2); border: 1px solid rgba(255, 94, 0, 0.5); color: #ff7b00; letter-spacing: 0.5px;">
-              <i class="fas fa-shield-alt" style="color: var(--accent, #ff5e00);"></i> Administrator Account Recovery
+            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; background: rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.5); color: #06b6d4; letter-spacing: 0.5px;">
+              <i class="fas fa-shield-alt" style="color: var(--accent, #2563eb);"></i> Administrator Account Recovery
             </span>
           <?php endif; ?>
         </div>
       <?php endif; ?>
 
-      <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
-        <i class="fas fa-envelope-open-text" style="font-size: 24px; color: #ff5e00; margin-bottom: 8px; display: inline-block;"></i>
+      <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+        <i class="fas fa-envelope-open-text" style="font-size: 24px; color: #2563eb; margin-bottom: 8px; display: inline-block;"></i>
         <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
           A 6-digit authentication PIN has been dispatched to your email:<br>
-          <strong style="color: #ff7b00; font-size: 15px; letter-spacing: 0.5px;"><?php echo htmlspecialchars($maskedEmail); ?></strong>
+          <strong style="color: #06b6d4; font-size: 15px; letter-spacing: 0.5px;"><?php echo htmlspecialchars($maskedEmail); ?></strong>
         </p>
         <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 0 0;">
           <i class="fas fa-clock"></i> Code expires in 15 minutes. Please check your inbox and spam folder.
@@ -437,9 +438,9 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
     <!-- STEP 2B: Verify via Secret Security Questions (2 out of 3 required) -->
     <?php elseif ($step === 2 && $method === 'questions' && isset($_SESSION['sec_questions'])): ?>
       
-      <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 94, 0, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
+      <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
         <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
-          <i class="fas fa-info-circle" style="color: #ff5e00;"></i> 
+          <i class="fas fa-info-circle" style="color: #2563eb;"></i> 
           Please answer your registered secret questions. <strong>At least 2 out of 3 answers must be correct</strong> to reset your password.
         </p>
       </div>
@@ -449,7 +450,7 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
 
         <!-- Question 1 -->
         <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="font-size: 13px; color: #ff7b00;">
+          <label class="form-label" style="font-size: 13px; color: #06b6d4;">
             1. <?php echo htmlspecialchars($_SESSION['sec_questions']['question1']); ?>
           </label>
           <div class="input-with-icon">
@@ -463,7 +464,7 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
 
         <!-- Question 2 -->
         <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="font-size: 13px; color: #ff7b00;">
+          <label class="form-label" style="font-size: 13px; color: #06b6d4;">
             2. <?php echo htmlspecialchars($_SESSION['sec_questions']['question2']); ?>
           </label>
           <div class="input-with-icon">
@@ -477,7 +478,7 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
 
         <!-- Question 3 -->
         <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label" style="font-size: 13px; color: #ff7b00;">
+          <label class="form-label" style="font-size: 13px; color: #06b6d4;">
             3. <?php echo htmlspecialchars($_SESSION['sec_questions']['question3']); ?>
           </label>
           <div class="input-with-icon">
@@ -534,7 +535,7 @@ if (isset($_SESSION['otp_reset_user']['email'])) {
     <?php endif; ?>
 
     <div class="text-center" style="margin-top: 2rem;">
-      <p style="font-size: 13px; color: #94a3b8;">Remember your password? <a href="login.php" style="color: #ff5e00; font-weight: 600;">Log In</a></p>
+      <p style="font-size: 13px; color: #94a3b8;">Remember your password? <a href="login.php" style="color: #2563eb; font-weight: 600;">Log In</a></p>
     </div>
   </div>
 

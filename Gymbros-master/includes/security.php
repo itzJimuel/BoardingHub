@@ -24,6 +24,33 @@ class Security
     return password_verify($password, $hash);
   }
 
+  // Secret answers are compared case- and spacing-insensitively ("Bantay" == " bantay ")
+  public static function normalizeAnswer($answer)
+  {
+    $a = preg_replace('/\s+/u', ' ', trim((string)$answer));
+    return function_exists('mb_strtolower') ? mb_strtolower($a, 'UTF-8') : strtolower($a);
+  }
+
+  public static function hashAnswer($answer)
+  {
+    return password_hash(self::normalizeAnswer($answer), PASSWORD_DEFAULT);
+  }
+
+  // Also accepts answers hashed by older code (raw text, or HTML/SQL-escaped text)
+  public static function verifyAnswer($answer, $hash, $conn = null)
+  {
+    $raw = trim((string)$answer);
+    $candidates = [self::normalizeAnswer($raw), $raw];
+    $escaped = htmlspecialchars($raw);
+    $candidates[] = $conn ? $conn->real_escape_string($escaped) : $escaped;
+    foreach (array_unique($candidates) as $candidate) {
+      if ($candidate !== '' && password_verify($candidate, $hash)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Generates a random password that satisfies validatePasswordStrength() (upper+lower+digit+symbol, 12 chars)
   public static function generateTempPassword($length = 12)
   {

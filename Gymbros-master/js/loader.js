@@ -49,7 +49,7 @@ setTimeout(hidePageLoader, 800);
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.5 });
+    }, { threshold: 0.15 });
 
     // Observe hero stats section
     const heroStats = document.querySelector('.hero-stats');

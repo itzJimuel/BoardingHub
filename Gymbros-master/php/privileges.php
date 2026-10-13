@@ -115,9 +115,10 @@ $csrfToken = Security::generateCSRFToken();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo $isSuperAdmin ? 'Privileges Management | BoardingHub Super Admin' : 'My Privileges | BoardingHub Admin'; ?></title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css?v=<?php echo time(); ?>">
   <link rel="stylesheet" href="../css/admin.css?v=<?php echo time(); ?>">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
@@ -126,10 +127,9 @@ $csrfToken = Security::generateCSRFToken();
   <!-- Loading Animation -->
   <div class="page-loader" id="mainPageLoader">
     <div class="loader">
-      <div class="dumbbell">
-        <div class="bar"></div>
-        <div class="weight left"></div>
-        <div class="weight right"></div>
+      <div class="house-loader-icon">
+        <i class="fas fa-home"></i>
+        <div class="loader-pulse-ring"></div>
       </div>
       <p>Loading Privileges...</p>
     </div>
@@ -200,6 +200,9 @@ $csrfToken = Security::generateCSRFToken();
               </a>
             </li>
           <?php endif; ?>
+          <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+          <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+          <?php endif; ?>
           <li>
             <a href="logs.php">
               <i class="fas fa-history"></i> <span>System Logs</span>
@@ -209,11 +212,6 @@ $csrfToken = Security::generateCSRFToken();
           <li>
             <a href="change-password.php">
               <i class="fas fa-key"></i> <span>Change Password</span>
-            </a>
-          </li>
-          <li>
-            <a href="logout.php" class="nav-logout">
-              <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
             </a>
           </li>
         </ul>
@@ -276,7 +274,7 @@ $csrfToken = Security::generateCSRFToken();
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(255, 94, 0, 0.15); color: var(--accent);">
+            <div class="stat-icon" style="background: rgba(37, 99, 235, 0.15); color: var(--accent);">
               <i class="fas fa-sliders-h"></i>
             </div>
             <div class="stat-details">
@@ -746,7 +744,7 @@ $csrfToken = Security::generateCSRFToken();
                 <i class="fas fa-info-circle"></i>
               </div>
               <div>
-                <h4 style="color: #fff; font-size: 15px; margin: 0 0 3px 0; font-family: 'Montserrat', sans-serif;">Read-Only Privilege Directory</h4>
+                <h4 style="color: #fff; font-size: 15px; margin: 0 0 3px 0; font-family: 'Plus Jakarta Sans', sans-serif;">Read-Only Privilege Directory</h4>
                 <p style="color: #94a3b8; font-size: 13px; margin: 0;">These capabilities are granted and managed by the Super Administrator. Checkboxes below indicate your active permissions.</p>
               </div>
             </div>
@@ -760,7 +758,7 @@ $csrfToken = Security::generateCSRFToken();
           <!-- Admin Stats Cards -->
           <div class="admin-stats-grid" style="margin-bottom: 25px;">
             <div class="stat-card">
-              <div class="stat-icon" style="background: rgba(255, 94, 0, 0.15); color: var(--accent);">
+              <div class="stat-icon" style="background: rgba(37, 99, 235, 0.15); color: var(--accent);">
                 <i class="fas fa-id-badge"></i>
               </div>
               <div class="stat-details">

@@ -44,9 +44,10 @@ $csrfToken = Security::generateCSRFToken();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create New Account | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
@@ -55,10 +56,9 @@ $csrfToken = Security::generateCSRFToken();
   <!-- Loading Animation -->
   <div class="page-loader">
     <div class="loader">
-      <div class="dumbbell">
-        <div class="bar"></div>
-        <div class="weight left"></div>
-        <div class="weight right"></div>
+      <div class="house-loader-icon">
+        <i class="fas fa-home"></i>
+        <div class="loader-pulse-ring"></div>
       </div>
       <p>Loading Form...</p>
     </div>
@@ -105,6 +105,9 @@ $csrfToken = Security::generateCSRFToken();
               <i class="fas fa-user-plus"></i> <span>Create Account</span>
             </a>
           </li>
+          <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+          <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+          <?php endif; ?>
           <li>
             <a href="logs.php">
               <i class="fas fa-history"></i> <span>System Logs</span>
@@ -112,7 +115,6 @@ $csrfToken = Security::generateCSRFToken();
           </li>
           <li class="nav-divider"></li>
           <li><a href="change-password.php"><i class="fas fa-key"></i> <span>Change Password</span></a></li>
-          <li><a href="logout.php" class="nav-logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
         </ul>
       </nav>
     </aside>
@@ -135,7 +137,7 @@ $csrfToken = Security::generateCSRFToken();
           
           <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 25px;">
             <div>
-              <h2 style="font-family: 'Oswald', sans-serif; color: var(--accent); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 12px;">
+              <h2 style="font-family: 'Outfit', sans-serif; color: var(--accent); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-user-plus"></i> Create New Administrator / Account
               </h2>
               <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">Directly create Super Administrator, Administrator, or User accounts.</p>
@@ -145,7 +147,7 @@ $csrfToken = Security::generateCSRFToken();
             </a>
           </div>
           <!-- Essential Rules Box -->
-          <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 25px;">
+          <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 12px; padding: 16px 20px; margin-bottom: 25px;">
             <h4 style="color: var(--accent); font-size: 15px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
               <i class="fas fa-shield-alt"></i> Essential Administrator Account Rules
             </h4>
@@ -235,24 +237,26 @@ $csrfToken = Security::generateCSRFToken();
                 </select>
               </div>
 
-              <div class="form-field">
-                <label>Purok / Street</label>
-                <input type="text" id="create-purok" placeholder="Purok / Street">
-              </div>
+              <p class="ac-help" style="grid-column: 1 / -1;"><i class="fas fa-lightbulb"></i> Address: start typing and pick from the list. Choose the Province first, then City/Municipality, then Barangay.</p>
 
               <div class="form-field">
-                <label>Barangay</label>
-                <input type="text" id="create-barangay" placeholder="Barangay">
+                <label>Province</label>
+                <input type="text" id="create-province" data-address="province" placeholder="Search province, e.g. Agusan del Sur" autocomplete="off">
               </div>
 
               <div class="form-field">
                 <label>City / Municipality</label>
-                <input type="text" id="create-city" placeholder="City">
+                <input type="text" id="create-city" data-address="city" placeholder="Search city or municipality" autocomplete="off">
               </div>
 
               <div class="form-field">
-                <label>Province</label>
-                <input type="text" id="create-province" placeholder="Province">
+                <label>Barangay</label>
+                <input type="text" id="create-barangay" data-address="barangay" placeholder="Search barangay" autocomplete="off">
+              </div>
+
+              <div class="form-field">
+                <label>Purok / Street</label>
+                <input type="text" id="create-purok" placeholder="e.g. Purok 3, Rizal St.">
               </div>
 
               <div class="form-field">
@@ -271,7 +275,7 @@ $csrfToken = Security::generateCSRFToken();
                   <p style="font-size: 12.5px; color: #94a3b8; margin-top: 3px;">Standard administrator privileges are automatically granted upon creation.</p>
                 </div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button type="button" class="btn-category-toggle" onclick="applyCreatePrivilegesPreset('admin_default')" style="background: rgba(255, 94, 0, 0.15); border-color: rgba(255, 94, 0, 0.4); color: #ff7a18;"><i class="fas fa-magic"></i> Default Admin</button>
+                  <button type="button" class="btn-category-toggle" onclick="applyCreatePrivilegesPreset('admin_default')" style="background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.4); color: #ff7a18;"><i class="fas fa-magic"></i> Default Admin</button>
                   <button type="button" class="btn-category-toggle" onclick="toggleAllCreatePrivileges(true)"><i class="fas fa-check-double"></i> Select All</button>
                   <button type="button" class="btn-category-toggle" onclick="toggleAllCreatePrivileges(false)"><i class="fas fa-times"></i> Clear All</button>
                 </div>
@@ -371,6 +375,7 @@ $csrfToken = Security::generateCSRFToken();
 
   <script src="../js/loader.js?v=<?php echo time(); ?>"></script>
   <script src="../js/admin.js?v=<?php echo time(); ?>"></script>
+  <script src="../js/address_autocomplete.js?v=<?php echo filemtime(__DIR__ . '/../js/address_autocomplete.js'); ?>"></script>
 </body>
 
 </html>

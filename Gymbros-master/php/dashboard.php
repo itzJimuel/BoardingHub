@@ -185,6 +185,7 @@ $csrfToken = Security::generateCSRFToken();
   <?php else: ?>
     <link rel="stylesheet" href="../css/dashboard.css?v=<?php echo time(); ?>">
   <?php endif; ?>
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
@@ -269,6 +270,9 @@ $csrfToken = Security::generateCSRFToken();
                 </a>
               </li>
             <?php endif; ?>
+            <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+            <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+            <?php endif; ?>
             <li>
               <a href="logs.php">
                 <i class="fas fa-history"></i> <span>System Logs</span>
@@ -278,11 +282,6 @@ $csrfToken = Security::generateCSRFToken();
             <li>
               <a href="change-password.php">
                 <i class="fas fa-key"></i> <span>Change Password</span>
-              </a>
-            </li>
-            <li>
-              <a href="logout.php" class="nav-logout">
-                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
               </a>
             </li>
           </ul>
@@ -416,12 +415,19 @@ $csrfToken = Security::generateCSRFToken();
           <?php endif; ?>
 
           <!-- BOARDING HOUSES QUICK DIRECTORY -->
-          <div class="admin-table-card" style="margin-bottom: 25px;">
+          <div class="admin-table-card" id="properties" style="margin-bottom: 25px;">
             <div class="admin-table-card-header">
               <h3><i class="fas fa-building" style="color: #10b981;"></i> Verified Boarding Houses on Record</h3>
-              <a href="index.php#browse-section" target="_blank" style="color: #60a5fa; font-size: 13px; text-decoration: none; font-weight: 600;">
-                <i class="fas fa-external-link-alt"></i> View Public Catalog
-              </a>
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <a href="index.php#browse-section" target="_blank" style="color: #60a5fa; font-size: 13px; text-decoration: none; font-weight: 600;">
+                  <i class="fas fa-external-link-alt"></i> View Public Catalog
+                </a>
+                <?php if ($isSuperAdmin || Auth::hasPrivilege('can_manage_classes')): ?>
+                  <a href="add_boarding_house.php" class="btn-primary-action" style="text-decoration: none;">
+                    <i class="fas fa-plus"></i> Post Boarding House
+                  </a>
+                <?php endif; ?>
+              </div>
             </div>
             <div class="table-responsive">
               <table class="admin-table">
@@ -447,7 +453,13 @@ $csrfToken = Security::generateCSRFToken();
                       <td><span style="font-size: 12px; color: #cbd5e1;"><?php echo htmlspecialchars($bh['room_types']); ?></span></td>
                       <td><strong style="color: #60a5fa;"><?php echo htmlspecialchars($bh['price_range']); ?></strong></td>
                       <td><span style="color: #34d399; font-weight: 700;"><?php echo (int)$bh['available_rooms']; ?> / <?php echo (int)$bh['total_rooms']; ?></span> rooms</td>
-                      <td><span style="color: #fbbf24;"><i class="fas fa-star"></i> <?php echo $bh['rating']; ?></span></td>
+                      <td>
+                        <?php if ((int)$bh['reviews_count'] === 0): ?>
+                          <span class="badge-new"><i class="fas fa-certificate"></i> New</span>
+                        <?php else: ?>
+                          <span style="color: #fbbf24;"><i class="fas fa-star"></i> <?php echo $bh['rating']; ?></span>
+                        <?php endif; ?>
+                      </td>
                       <td>
                         <?php echo htmlspecialchars($bh['landlord_name']); ?>
                         <div style="font-size: 11px; color: #94a3b8;"><?php echo htmlspecialchars($bh['landlord_phone']); ?></div>
@@ -465,7 +477,7 @@ $csrfToken = Security::generateCSRFToken();
               <h3><i class="fas fa-users-cog"></i> Resident & Staff Accounts Directory</h3>
               <div class="table-search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="adminUserSearch" placeholder="Search by name, username, ID, or email..." onkeyup="filterUsersTable()">
+                <input type="text" id="adminUserSearch" placeholder="Filter by Employee ID, name, username, or email..." oninput="filterUsersTable()">
               </div>
             </div>
             <div class="table-responsive">
@@ -529,7 +541,7 @@ $csrfToken = Security::generateCSRFToken();
                             </button>
                           <?php endif; ?>
 
-                          <button class="action-btn btn-edit" onclick="openEditUserModal('<?php echo htmlspecialchars(addslashes(json_encode($u))); ?>')" title="Edit User">
+                          <button class="action-btn btn-edit" onclick="openEditUserModal('<?php echo htmlspecialchars($u['id_number']); ?>')" title="Edit User">
                             <i class="fas fa-edit"></i>
                           </button>
 
@@ -637,6 +649,40 @@ $csrfToken = Security::generateCSRFToken();
           </form>
         </div>
       </div>
+    <?php else: ?>
+      <!-- MODAL 2B: DELETE REQUEST (Admin -> forwarded to Super Admin) -->
+      <div class="modal-overlay" id="modal-delete-request">
+        <div class="modal-card" style="max-width: 520px;">
+          <div class="modal-header">
+            <h3><i class="fas fa-user-slash" style="color: #f87171;"></i> Request Account Deletion</h3>
+            <button type="button" class="modal-close" onclick="closeAdminModal('modal-delete-request')"><i class="fas fa-times"></i></button>
+          </div>
+          <form onsubmit="submitDeleteRequestForm(event)">
+            <div class="modal-body">
+              <input type="hidden" id="delreq-user-id">
+
+              <div class="superadmin-only-notice" role="alert">
+                <i class="fas fa-crown"></i>
+                <div>
+                  <strong>Only the Super Administrator can delete accounts.</strong>
+                  <p>As an Administrator you can't delete this account directly. Your request and reason will be sent to the Super Admin, who will review the user's complete information before approving or rejecting it.</p>
+                </div>
+              </div>
+
+              <p style="color: #cbd5e1; margin: 16px 0 14px;">Account to delete: <strong id="delreq-username" style="color: #f87171;"></strong></p>
+
+              <div class="form-field">
+                <label for="delreq-reason">Reason for deletion *</label>
+                <textarea id="delreq-reason" rows="4" maxlength="500" required placeholder="Explain why this account should be deleted (e.g. duplicate account, moved out, violated house rules)..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary-action" onclick="closeAdminModal('modal-delete-request')">Cancel</button>
+              <button type="submit" class="btn-primary-action" style="background: #dc2626;"><i class="fas fa-paper-plane"></i> Send Request to Super Admin</button>
+            </div>
+          </form>
+        </div>
+      </div>
     <?php endif; ?>
 
   <?php else: ?>
@@ -651,6 +697,7 @@ $csrfToken = Security::generateCSRFToken();
         <ul>
           <li><a href="index.php"><i class="fas fa-home"></i> Home</a></li>
           <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+          <li><a href="logs.php"><i class="fas fa-history"></i> Logs</a></li>
           <li><a href="change-password.php"><i class="fas fa-key"></i> Change Password</a></li>
           <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
         </ul>
@@ -788,9 +835,13 @@ $csrfToken = Security::generateCSRFToken();
                   <div class="house-details">
                     <div class="house-rating-row">
                       <div class="stars">
-                        <i class="fas fa-star"></i>
-                        <span><?php echo number_format((float)$house['rating'], 1); ?></span>
-                        <small>(<?php echo (int)$house['reviews_count']; ?> reviews)</small>
+                        <?php if ((int)$house['reviews_count'] === 0): ?>
+                          <span class="badge-new"><i class="fas fa-certificate"></i> New listing</span>
+                        <?php else: ?>
+                          <i class="fas fa-star"></i>
+                          <span><?php echo number_format((float)$house['rating'], 1); ?></span>
+                          <small>(<?php echo (int)$house['reviews_count']; ?> reviews)</small>
+                        <?php endif; ?>
                       </div>
                       <div class="slots-available">
                         <i class="fas fa-door-open"></i> <?php echo (int)$house['available_rooms']; ?> slots left
@@ -1253,6 +1304,34 @@ $csrfToken = Security::generateCSRFToken();
   <?php if ($isAdmin): ?>
     <script src="../js/admin.js?v=<?php echo time(); ?>"></script>
     <script>
+      // Accounts directory search: Employee ID, name, username, or email
+      function filterUsersTable() {
+        const input = document.getElementById('adminUserSearch');
+        const table = document.getElementById('usersAdminTable');
+        if (!input || !table) return;
+        const q = input.value.trim().toLowerCase();
+        const rows = table.querySelectorAll('tbody tr:not(.no-results-row)');
+        let shown = 0;
+        rows.forEach(row => {
+          const match = !q || row.textContent.toLowerCase().includes(q);
+          row.style.display = match ? '' : 'none';
+          if (match) shown++;
+        });
+        let empty = table.querySelector('.no-results-row');
+        if (!shown) {
+          if (!empty) {
+            empty = document.createElement('tr');
+            empty.className = 'no-results-row';
+            empty.innerHTML = '<td colspan="8" style="text-align:center; padding:28px; color:#94a3b8;"><i class="fas fa-search"></i> No account matches "<span></span>"</td>';
+            table.querySelector('tbody').appendChild(empty);
+          }
+          empty.querySelector('span').textContent = input.value.trim();
+          empty.style.display = '';
+        } else if (empty) {
+          empty.style.display = 'none';
+        }
+      }
+
       async function updateReservationStatus(resId, status) {
         if (!confirm(`Are you sure you want to change reservation #${resId} status to ${status}?`)) return;
         try {

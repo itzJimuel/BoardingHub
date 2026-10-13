@@ -111,9 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       if (empty($errors)) {
-        $h1 = Security::hashPassword($a1);
-        $h2 = Security::hashPassword($a2);
-        $h3 = Security::hashPassword($a3);
+        $h1 = Security::hashAnswer($a1);
+        $h2 = Security::hashAnswer($a2);
+        $h3 = Security::hashAnswer($a3);
 
         $ins = $conn->prepare("INSERT INTO security_questions (user_id, question1, answer1_hash, question2, answer2_hash, question3, answer3_hash) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $ins->bind_param("sssssss", $user['id_number'], $q1, $h1, $q2, $h2, $q3, $h3);
@@ -148,11 +148,12 @@ $csrf_token = Security::generateCSRFToken();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Complete Your Account Setup | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
-<body>
+<body class="bh-auth">
   <header>
     <div class="logo">
       <h1>Boarding<span>Hub</span></h1>
@@ -265,7 +266,7 @@ $csrf_token = Security::generateCSRFToken();
     }
   </script>
 
-  <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#9ca3af;font-family:'Montserrat',sans-serif;border-top:1px solid #2d3748;">
+  <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#9ca3af;font-family:'Plus Jakarta Sans', sans-serif;border-top:1px solid #2d3748;">
     &copy; <?php echo date('Y'); ?> BoardingHub. All rights reserved.
   </footer>
 </body>

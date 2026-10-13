@@ -54,7 +54,7 @@ switch ($action) {
         }
 
         // Fetch target user role to prevent regular admin from altering Super Admin
-        $stmt = $conn->prepare("SELECT role FROM users WHERE id_number = ?");
+        $stmt = $conn->prepare("SELECT role, status, email_verified FROM users WHERE id_number = ?");
         $stmt->bind_param("s", $targetUserId);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -62,8 +62,15 @@ switch ($action) {
             echo json_encode(['success' => false, 'message' => 'User not found']);
             exit();
         }
-        $targetRole = $res->fetch_assoc()['role'];
+        $targetRow = $res->fetch_assoc();
+        $targetRole = $targetRow['role'];
         $stmt->close();
+
+        // Registrations must confirm their emailed OTP before they can be approved
+        if ($newStatus === 'approved' && $targetRow['status'] === 'pending' && isset($targetRow['email_verified']) && (int)$targetRow['email_verified'] === 0) {
+            echo json_encode(['success' => false, 'message' => 'This user has not verified their email with the OTP yet, so the account cannot be approved.']);
+            exit();
+        }
 
         if ($targetRole === 'superadmin' && !$isSuperAdmin) {
             echo json_encode(['success' => false, 'message' => 'Only Super Admin can alter Super Admin accounts']);
@@ -262,7 +269,7 @@ switch ($action) {
         $newStatus = isset($input['status']) ? $db->sanitize($input['status']) : null;
 
         // Check target user role
-        $stmt = $conn->prepare("SELECT role, status FROM users WHERE id_number = ?");
+        $stmt = $conn->prepare("SELECT role, status, email_verified FROM users WHERE id_number = ?");
         $stmt->bind_param("s", $targetUserId);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -274,6 +281,11 @@ switch ($action) {
         $targetRole = $targetRow['role'];
         $targetCurrentStatus = $targetRow['status'];
         $stmt->close();
+
+        if ($newStatus === 'approved' && $targetCurrentStatus === 'pending' && isset($targetRow['email_verified']) && (int)$targetRow['email_verified'] === 0) {
+            echo json_encode(['success' => false, 'message' => 'This user has not verified their email with the OTP yet, so the account cannot be approved.']);
+            exit();
+        }
 
         if ($targetRole === 'superadmin' && !$isSuperAdmin) {
             echo json_encode(['success' => false, 'message' => 'Only Super Admin can update Super Admin details']);
@@ -637,6 +649,126 @@ switch ($action) {
             echo json_encode(['success' => true, 'message' => "Ticket #{$ticketId} marked as {$status}."]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to update ticket: ' . $conn->error]);
+        }
+        break;
+
+    case 'add_boarding_house':
+        // Super Admin, or an Admin holding the "Manage Boarding Houses & Rooms" privilege
+        if (!$isSuperAdmin && !Auth::hasPrivilege('can_manage_classes')) {
+            echo json_encode(['success' => false, 'message' => 'You do not have permission to post boarding houses']);
+            exit();
+        }
+
+        // Values are stored raw (prepared statements) and escaped on output
+        $str = function ($key, $max) use ($input) {
+            $v = trim(preg_replace('/\s+/', ' ', (string)($input[$key] ?? '')));
+            return mb_substr(strip_tags($v), 0, $max);
+        };
+
+        $name = $str('name', 150);
+        $address = $str('address', 255);
+        $city = $str('city', 100);
+        $description = trim(strip_tags((string)($input['description'] ?? '')));
+        $proximity = $str('proximity', 150);
+        $landlordName = $str('landlord_name', 100);
+        $landlordPhone = $str('landlord_phone', 50);
+        $landlordEmail = $str('landlord_email', 100);
+        $genderPolicy = $str('gender_policy', 20);
+        $minPrice = (float)($input['min_price'] ?? 0);
+        $maxPrice = (float)($input['max_price'] ?? 0);
+        $totalRooms = (int)($input['total_rooms'] ?? 0);
+        $availableRooms = (int)($input['available_rooms'] ?? 0);
+
+        $allowedRoomTypes = ['Single Room', 'Bedspace', 'Studio Pad', 'Deluxe'];
+        $roomTypes = array_values(array_intersect($allowedRoomTypes, (array)($input['room_types'] ?? [])));
+
+        $amenities = [];
+        foreach ((array)($input['amenities'] ?? []) as $a) {
+            $a = mb_substr(trim(strip_tags((string)$a)), 0, 60);
+            if ($a !== '' && !in_array($a, $amenities, true)) $amenities[] = $a;
+        }
+        $amenities = array_slice($amenities, 0, 20);
+
+        $errors = [];
+        if (mb_strlen($name) < 3) $errors[] = 'Property name must be at least 3 characters';
+        if (mb_strlen($address) < 5) $errors[] = 'Please enter the full street address';
+        if ($city === '') $errors[] = 'City / Municipality is required';
+        if (mb_strlen($description) < 20) $errors[] = 'Description must be at least 20 characters';
+        if (empty($roomTypes)) $errors[] = 'Select at least one room type';
+        if (!in_array($genderPolicy, ['All', 'Male Only', 'Female Only', 'Co-ed'], true)) $errors[] = 'Invalid gender policy';
+        if ($minPrice <= 0 || $maxPrice <= 0) $errors[] = 'Enter both minimum and maximum monthly rent';
+        elseif ($minPrice > $maxPrice) $errors[] = 'Minimum rent cannot be higher than maximum rent';
+        elseif ($maxPrice > 1000000) $errors[] = 'Monthly rent looks too high';
+        if ($totalRooms < 1 || $totalRooms > 1000) $errors[] = 'Total rooms must be between 1 and 1000';
+        if ($availableRooms < 0 || $availableRooms > $totalRooms) $errors[] = 'Available rooms must be between 0 and the total rooms';
+        if ($landlordName === '') $errors[] = 'Landlord / contact name is required';
+        if (!preg_match('/^[0-9+\-\s()]{7,20}$/', $landlordPhone)) $errors[] = 'Enter a valid contact number';
+        if ($landlordEmail !== '' && !filter_var($landlordEmail, FILTER_VALIDATE_EMAIL)) $errors[] = 'Enter a valid contact email';
+        if (empty($amenities)) $errors[] = 'Add at least one amenity';
+
+        // Optional cover photo
+        $imagePath = '../images/boarding_house_exterior.jpg';
+        $savedFile = null;
+        $upload = $_FILES['image'] ?? null;
+        if ($upload && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $allowedMimes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            if ($upload['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = 'Photo upload failed. Please try again.';
+            } elseif ($upload['size'] > 5 * 1024 * 1024) {
+                $errors[] = 'Photo must be 5 MB or smaller';
+            } else {
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($upload['tmp_name']);
+                if (!isset($allowedMimes[$mime]) || @getimagesize($upload['tmp_name']) === false) {
+                    $errors[] = 'Photo must be a JPG, PNG, or WebP image';
+                } elseif (empty($errors)) {
+                    $dir = __DIR__ . '/../images/listings';
+                    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+                    $fileName = 'bh_' . date('Ymd') . '_' . bin2hex(random_bytes(8)) . '.' . $allowedMimes[$mime];
+                    if (move_uploaded_file($upload['tmp_name'], $dir . '/' . $fileName)) {
+                        $imagePath = '../images/listings/' . $fileName;
+                        $savedFile = $dir . '/' . $fileName;
+                    } else {
+                        $errors[] = 'Could not save the photo on the server';
+                    }
+                }
+            }
+        }
+
+        if (!empty($errors)) {
+            echo json_encode(['success' => false, 'message' => $errors[0], 'errors' => $errors]);
+            exit();
+        }
+
+        // Track who posted each listing (added on first use)
+        $colCheck = $conn->query("SHOW COLUMNS FROM boarding_houses LIKE 'posted_by'");
+        if ($colCheck && $colCheck->num_rows === 0) {
+            $conn->query("ALTER TABLE boarding_houses ADD COLUMN posted_by varchar(20) DEFAULT NULL AFTER featured");
+        }
+
+        $fmt = fn($n) => '₱' . number_format($n, 0);
+        $priceRange = $fmt($minPrice) . ' - ' . $fmt($maxPrice) . '/mo';
+        $roomTypesStr = implode(', ', $roomTypes);
+        $amenitiesJson = json_encode($amenities, JSON_UNESCAPED_UNICODE);
+        $rating = 0.0;
+        $reviews = 0;
+        $featured = 0;
+        $postedBy = $currentUser['id_number'];
+
+        $stmt = $conn->prepare("INSERT INTO boarding_houses (name, address, city, description, room_types, gender_policy, price_range, min_price, max_price, available_rooms, total_rooms, rating, reviews_count, landlord_name, landlord_phone, landlord_email, proximity, image_path, amenities, featured, posted_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssssddiidissssssis",
+            $name, $address, $city, $description, $roomTypesStr, $genderPolicy, $priceRange,
+            $minPrice, $maxPrice, $availableRooms, $totalRooms, $rating, $reviews,
+            $landlordName, $landlordPhone, $landlordEmail, $proximity, $imagePath, $amenitiesJson, $featured, $postedBy
+        );
+
+        if ($stmt->execute()) {
+            $newId = $stmt->insert_id;
+            $stmt->close();
+            ActivityLogger::log('ADD_BOARDING_HOUSE', "@{$currentUser['username']} posted boarding house #{$newId}: {$name} ({$city}).", 'Boarding House');
+            echo json_encode(['success' => true, 'message' => "\"{$name}\" is now live on BoardingHub.", 'id' => $newId]);
+        } else {
+            if ($savedFile) @unlink($savedFile);
+            echo json_encode(['success' => false, 'message' => 'Failed to save listing: ' . $conn->error]);
         }
         break;
 

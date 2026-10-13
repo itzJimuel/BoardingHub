@@ -166,6 +166,7 @@ if ($res && $res->num_rows > 0) {
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
@@ -208,9 +209,7 @@ if ($res && $res->num_rows > 0) {
         <li><a href="#why-us"><i class="fas fa-shield-alt"></i> Why Choose Us</a></li>
         <?php if ($isLoggedIn): ?>
           <li><a href="dashboard.php" class="nav-highlight"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-          <?php if (Auth::isAdmin()): ?>
-            <li><a href="logs.php"><i class="fas fa-history"></i> Logs</a></li>
-          <?php endif; ?>
+          <li><a href="logs.php"><i class="fas fa-history"></i> Logs</a></li>
           <li><a href="change-password.php"><i class="fas fa-key"></i> Password</a></li>
           <li><a href="logout.php" class="nav-logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
         <?php else: ?>
@@ -354,7 +353,7 @@ if ($res && $res->num_rows > 0) {
                data-desc="<?php echo htmlspecialchars($house['description']); ?>"
                data-proximity="<?php echo htmlspecialchars($house['proximity']); ?>"
                data-avail="<?php echo (int)$house['available_rooms']; ?>"
-               data-rating="<?php echo $house['rating']; ?>">
+               data-rating="<?php echo (isset($house['reviews_count']) && (int)$house['reviews_count'] === 0) ? 'New' : $house['rating']; ?>">
             
             <div class="house-image-wrapper">
               <img src="<?php echo htmlspecialchars($house['image_path']); ?>" alt="<?php echo htmlspecialchars($house['name']); ?>" loading="lazy">
@@ -378,9 +377,13 @@ if ($res && $res->num_rows > 0) {
             <div class="house-details">
               <div class="house-rating-row">
                 <div class="stars">
-                  <i class="fas fa-star"></i>
-                  <span><?php echo number_format((float)$house['rating'], 1); ?></span>
-                  <small>(<?php echo (int)($house['reviews_count'] ?? 25); ?> reviews)</small>
+                  <?php if (isset($house['reviews_count']) && (int)$house['reviews_count'] === 0): ?>
+                    <span class="badge-new"><i class="fas fa-certificate"></i> New listing</span>
+                  <?php else: ?>
+                    <i class="fas fa-star"></i>
+                    <span><?php echo number_format((float)$house['rating'], 1); ?></span>
+                    <small>(<?php echo (int)($house['reviews_count'] ?? 25); ?> reviews)</small>
+                  <?php endif; ?>
                 </div>
                 <div class="slots-available">
                   <i class="fas fa-door-open"></i> <strong><?php echo (int)$house['available_rooms']; ?></strong> rooms left

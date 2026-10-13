@@ -137,7 +137,7 @@ $csrf_token = Security::generateCSRFToken();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Change Password | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css?v=<?php echo time(); ?>">
   <?php if ($isAdmin): ?>
     <link rel="stylesheet" href="../css/admin.css?v=<?php echo time(); ?>">
@@ -169,7 +169,7 @@ $csrf_token = Security::generateCSRFToken();
       align-items: center;
       justify-content: center;
       gap: 8px;
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       transition: all 0.25s ease;
     }
     .mode-tab-btn:hover {
@@ -177,21 +177,21 @@ $csrf_token = Security::generateCSRFToken();
       background: rgba(255, 255, 255, 0.06);
     }
     .mode-tab-btn.active {
-      background: linear-gradient(135deg, var(--accent, #ff5e00), #ff7b00);
+      background: linear-gradient(135deg, var(--accent, #2563eb), #06b6d4);
       color: #fff;
-      box-shadow: 0 4px 15px rgba(255, 94, 0, 0.35);
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
     }
   </style>
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
-<body>
+<body<?php echo $isAdmin ? "" : ' class="bh-auth"'; ?>>
   <!-- Loading Animation -->
   <div class="page-loader">
     <div class="loader">
-      <div class="dumbbell">
-        <div class="bar"></div>
-        <div class="weight left"></div>
-        <div class="weight right"></div>
+      <div class="house-loader-icon">
+        <i class="fas fa-home"></i>
+        <div class="loader-pulse-ring"></div>
       </div>
       <p><?php echo $isAdmin ? 'Loading Console...' : 'Loading...'; ?></p>
     </div>
@@ -250,6 +250,9 @@ $csrf_token = Security::generateCSRFToken();
                 </a>
               </li>
             <?php endif; ?>
+            <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+            <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+            <?php endif; ?>
             <li>
               <a href="logs.php">
                 <i class="fas fa-history"></i> <span>System Logs</span>
@@ -259,11 +262,6 @@ $csrf_token = Security::generateCSRFToken();
             <li>
               <a href="change-password.php" class="active">
                 <i class="fas fa-key"></i> <span>Change Password</span>
-              </a>
-            </li>
-            <li>
-              <a href="logout.php" class="nav-logout">
-                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
               </a>
             </li>
           </ul>
@@ -295,7 +293,7 @@ $csrf_token = Security::generateCSRFToken();
             
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 25px;">
               <div>
-                <h2 style="font-family: 'Oswald', sans-serif; color: var(--accent); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 12px; margin: 0;">
+                <h2 style="font-family: 'Outfit', sans-serif; color: var(--accent); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 12px; margin: 0;">
                   <i class="fas fa-lock"></i> Update Account Password
                 </h2>
                 <p style="color: #94a3b8; font-size: 14px; margin-top: 4px; margin-bottom: 0;">Change or recover your administrator credentials with current password or Email OTP.</p>
@@ -316,7 +314,7 @@ $csrf_token = Security::generateCSRFToken();
             </div>
 
             <!-- Password Requirements Box -->
-            <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 22px;">
+            <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 22px;">
               <h4 style="color: var(--accent); font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-shield-alt"></i> Password Security Requirements
               </h4>
@@ -409,11 +407,11 @@ $csrf_token = Security::generateCSRFToken();
 
             <!-- MODE 2: EMAIL OTP RESET FORM -->
             <div id="panel-admin-otp" style="<?php echo $activeMode === 'otp' ? '' : 'display: none;'; ?>">
-              <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+              <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                   <div>
                     <h5 style="margin: 0; color: #fff; font-size: 14px;"><i class="fas fa-envelope-open-text" style="color: var(--accent);"></i> One-Time PIN Authentication</h5>
-                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12.5px;">Registered Email: <strong style="color: #ff7b00;"><?php echo htmlspecialchars($user['email']); ?></strong></p>
+                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12.5px;">Registered Email: <strong style="color: #06b6d4;"><?php echo htmlspecialchars($user['email']); ?></strong></p>
                   </div>
                   <form method="POST" action="" style="margin: 0;">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -558,7 +556,7 @@ $csrf_token = Security::generateCSRFToken();
               </span>
             </div>
             <div style="margin-top: 6px;">
-              <a href="javascript:void(0)" onclick="switchUserPasswordMode('otp')" style="font-size: 12px; color: var(--accent, #ff5e00); text-decoration: none;">
+              <a href="javascript:void(0)" onclick="switchUserPasswordMode('otp')" style="font-size: 12px; color: var(--accent, #2563eb); text-decoration: none;">
                 <i class="fas fa-paper-plane"></i> Forgot password? Reset via Email OTP
               </a>
             </div>
@@ -596,9 +594,9 @@ $csrf_token = Security::generateCSRFToken();
 
       <!-- USER MODE 2: EMAIL OTP -->
       <div id="panel-user-otp" style="<?php echo $activeMode === 'otp' ? '' : 'display: none;'; ?>">
-        <div style="background: rgba(255, 94, 0, 0.08); border: 1px solid rgba(255, 94, 0, 0.3); border-radius: 12px; padding: 14px; margin-bottom: 18px; text-align: center;">
+        <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 12px; padding: 14px; margin-bottom: 18px; text-align: center;">
           <p style="margin: 0 0 10px 0; font-size: 13px; color: #cbd5e1;">
-            Send a 6-digit OTP verification code to: <br><strong style="color: #ff7b00;"><?php echo htmlspecialchars($user['email']); ?></strong>
+            Send a 6-digit OTP verification code to: <br><strong style="color: #06b6d4;"><?php echo htmlspecialchars($user['email']); ?></strong>
           </p>
           <form method="POST" action="" style="display: inline;">
             <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -651,7 +649,7 @@ $csrf_token = Security::generateCSRFToken();
 
     </div>
 
-    <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#9ca3af;font-family:'Montserrat',sans-serif;border-top:1px solid #2d3748;">
+    <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#9ca3af;font-family:'Plus Jakarta Sans', sans-serif;border-top:1px solid #2d3748;">
       &copy; <?php echo date('Y'); ?> BoardingHub. All rights reserved.
     </footer>
   <?php endif; ?>

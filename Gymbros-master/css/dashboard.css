@@ -51,7 +51,7 @@
   right: -50px;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(255, 94, 0, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -72,12 +72,12 @@
   justify-content: center;
   font-size: 32px;
   color: #fff;
-  box-shadow: 0 0 20px rgba(255, 94, 0, 0.4);
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
   flex-shrink: 0;
 }
 
 .member-greeting h2 {
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 28px;
   font-weight: 700;
   color: #fff;
@@ -99,8 +99,8 @@
   align-items: center;
   gap: 5px;
   padding: 4px 12px;
-  background: rgba(255, 94, 0, 0.2);
-  border: 1px solid rgba(255, 94, 0, 0.5);
+  background: rgba(37, 99, 235, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.5);
   border-radius: 20px;
   color: var(--accent-orange);
   font-size: 12px;
@@ -128,13 +128,13 @@
   align-items: center;
   gap: 8px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(255, 94, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
   text-decoration: none;
 }
 
 .btn-hero-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 94, 0, 0.5);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
 }
 
 .btn-hero-secondary {
@@ -207,9 +207,9 @@
 }
 
 .icon-workouts {
-  background: rgba(255, 94, 0, 0.15);
+  background: rgba(37, 99, 235, 0.15);
   color: var(--accent-orange);
-  border: 1px solid rgba(255, 94, 0, 0.3);
+  border: 1px solid rgba(37, 99, 235, 0.3);
 }
 
 .icon-calories {
@@ -235,7 +235,7 @@
   font-weight: 700;
   color: #fff;
   margin-bottom: 3px;
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Outfit', sans-serif;
   letter-spacing: 0.5px;
 }
 
@@ -284,7 +284,7 @@
 .dashboard-tab-btn.active {
   color: #fff;
   background: var(--accent-gradient);
-  box-shadow: 0 4px 15px rgba(255, 94, 0, 0.35);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
 }
 
 /* Tab Panes */
@@ -378,9 +378,9 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  background: rgba(255, 94, 0, 0.15);
+  background: rgba(37, 99, 235, 0.15);
   color: var(--accent-orange);
-  border: 1px solid rgba(255, 94, 0, 0.3);
+  border: 1px solid rgba(37, 99, 235, 0.3);
 }
 
 .btn-del-workout {
@@ -506,7 +506,7 @@
 
 .btn-book-class:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 94, 0, 0.4);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
 }
 
 .btn-book-class.booked {
@@ -527,10 +527,10 @@
   width: 100%;
   max-width: 480px;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 2px solid rgba(255, 94, 0, 0.4);
+  border: 2px solid rgba(37, 99, 235, 0.4);
   border-radius: 24px;
   padding: 30px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 94, 0, 0.2);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(37, 99, 235, 0.2);
   position: relative;
   overflow: hidden;
 }
@@ -553,7 +553,7 @@
 }
 
 .pass-logo h2 {
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 26px;
   color: #fff;
 }
@@ -652,12 +652,12 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  background: rgba(255, 94, 0, 0.08);
-  box-shadow: 0 0 25px rgba(255, 94, 0, 0.25);
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 25px rgba(37, 99, 235, 0.25);
 }
 
 .bmi-number {
-  font-family: 'Oswald', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 38px;
   font-weight: 700;
   color: #fff;
@@ -821,7 +821,7 @@
 .form-field-dash textarea:focus {
   outline: none;
   border-color: var(--accent-orange);
-  box-shadow: 0 0 0 3px rgba(255, 94, 0, 0.2);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
 .form-field-dash textarea {

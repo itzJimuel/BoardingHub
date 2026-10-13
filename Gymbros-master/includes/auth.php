@@ -41,7 +41,7 @@ class Auth
       $correct = 0;
 
       for ($i = 1; $i <= 3; $i++) {
-        if (password_verify($answers[$i - 1], $questionData["answer{$i}_hash"])) {
+        if (Security::verifyAnswer($answers[$i - 1] ?? '', $questionData["answer{$i}_hash"], $conn)) {
           $correct++;
         }
       }

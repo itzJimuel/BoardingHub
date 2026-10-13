@@ -199,6 +199,11 @@ function closeModal(modalId) {
     }
 }
 
+// Alias used by inline onclick handlers in dashboard.php
+function closeAdminModal(modalId) {
+    closeModal(modalId);
+}
+
 // Account Status Update (Approve / Block / Pending)
 function updateUserStatus(userId, status) {
     const csrfToken = document.getElementById('csrf_token_val').value;

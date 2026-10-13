@@ -151,7 +151,9 @@ class Validation {
 
     static toTitleCase(str) {
         const s = String(str || '').toLowerCase().replace(/\s+/g, ' ').trim();
-        return s.replace(/(^|[\s\-\/,\.'])\w/g, m => m.toUpperCase());
+        const titled = s.replace(/(^|[\s\-\/,\.'])\w/g, m => m.toUpperCase());
+        // Keep connector words lowercase, e.g. "City of Bayugan", "Agusan del Sur"
+        return titled.replace(/(?!^)\b(Of|De|Del|Dela|De La|Ng)\b/g, w => w.toLowerCase());
     }
 
     static validateAddress(input, fieldName) {

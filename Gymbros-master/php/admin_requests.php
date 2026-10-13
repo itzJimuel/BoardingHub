@@ -160,9 +160,10 @@ function buildAdminReqUrl($paramsToMerge = []) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Requests & Approvals | BoardingHub</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css?v=<?php echo time(); ?>">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
 <body>
@@ -171,10 +172,9 @@ function buildAdminReqUrl($paramsToMerge = []) {
   <!-- Loading Animation -->
   <div class="page-loader">
     <div class="loader">
-      <div class="dumbbell">
-        <div class="bar"></div>
-        <div class="weight left"></div>
-        <div class="weight right"></div>
+      <div class="house-loader-icon">
+        <i class="fas fa-home"></i>
+        <div class="loader-pulse-ring"></div>
       </div>
       <p>Loading Requests Queue...</p>
     </div>
@@ -231,6 +231,9 @@ function buildAdminReqUrl($paramsToMerge = []) {
               </a>
             </li>
           <?php endif; ?>
+          <?php if (Auth::isSuperAdmin() || Auth::hasPrivilege('can_manage_classes')): ?>
+          <li><a href="add_boarding_house.php"><i class="fas fa-house-medical"></i> <span>Post Boarding House</span></a></li>
+          <?php endif; ?>
           <li>
             <a href="logs.php">
               <i class="fas fa-history"></i> <span>System Logs</span>
@@ -238,7 +241,6 @@ function buildAdminReqUrl($paramsToMerge = []) {
           </li>
           <li class="nav-divider"></li>
           <li><a href="change-password.php"><i class="fas fa-key"></i> <span>Change Password</span></a></li>
-          <li><a href="logout.php" class="nav-logout"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
         </ul>
       </nav>
     </aside>
@@ -387,6 +389,13 @@ function buildAdminReqUrl($paramsToMerge = []) {
                         </td>
                         <td>
                           <span style="color: #cbd5e1; font-size: 13px;"><i class="fas fa-envelope" style="color: #64748b; margin-right: 6px;"></i><?php echo htmlspecialchars($pu['email']); ?></span>
+                          <div style="margin-top: 6px;">
+                            <?php if (isset($pu['email_verified']) && (int)$pu['email_verified'] === 0): ?>
+                              <span class="status-badge status-pending" title="The user has not entered the emailed OTP yet"><i class="fas fa-hourglass-half"></i> OTP not verified</span>
+                            <?php else: ?>
+                              <span class="status-badge status-approved"><i class="fas fa-envelope-circle-check"></i> Email verified</span>
+                            <?php endif; ?>
+                          </div>
                         </td>
                         <td>
                           <span style="color: #94a3b8; font-size: 13px;"><i class="fas fa-clock" style="color: #64748b; margin-right: 6px;"></i><?php echo date('M d, Y h:i A', strtotime($pu['created_at'])); ?></span>
@@ -419,7 +428,7 @@ function buildAdminReqUrl($paramsToMerge = []) {
                     <i class="fas fa-chevron-left"></i>
                   </a>
                   <?php for ($p = 1; $p <= $totalPendingPages; $p++): ?>
-                    <a href="<?php echo buildAdminReqUrl(['page_pending' => $p, 'tab' => 'pending-registrations']); ?>" style="padding: 6px 12px; border-radius: 6px; background: <?php echo $pagePending === $p ? 'var(--accent, #ff5e00)' : 'rgba(255,255,255,0.08)'; ?>; color: #fff; text-decoration: none; font-size: 13px; font-weight: <?php echo $pagePending === $p ? '700' : 'normal'; ?>;">
+                    <a href="<?php echo buildAdminReqUrl(['page_pending' => $p, 'tab' => 'pending-registrations']); ?>" style="padding: 6px 12px; border-radius: 6px; background: <?php echo $pagePending === $p ? 'var(--accent, #2563eb)' : 'rgba(255,255,255,0.08)'; ?>; color: #fff; text-decoration: none; font-size: 13px; font-weight: <?php echo $pagePending === $p ? '700' : 'normal'; ?>;">
                       <?php echo $p; ?>
                     </a>
                   <?php endfor; ?>

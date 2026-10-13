@@ -36,14 +36,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm_password = $_POST['confirm_password'] ?? '';
 
         // Security Questions
-        $security_question1 = $db->sanitize($_POST['security_question1'] ?? '');
-        $security_answer1 = $db->sanitize($_POST['security_answer1'] ?? '');
-        $security_question2 = $db->sanitize($_POST['security_question2'] ?? '');
-        $security_answer2 = $db->sanitize($_POST['security_answer2'] ?? '');
-        
-        $security_question3 = $db->sanitize($_POST['security_question3'] ?? '');
-        $security_answer3 = $db->sanitize($_POST['security_answer3'] ?? '');
-        
+        // Answers are hashed, so they are kept raw (escaping would change the hash)
+        $security_question1 = trim($_POST['security_question1'] ?? '');
+        $security_answer1 = trim($_POST['security_answer1'] ?? '');
+        $security_question2 = trim($_POST['security_question2'] ?? '');
+        $security_answer2 = trim($_POST['security_answer2'] ?? '');
+        $security_question3 = trim($_POST['security_question3'] ?? '');
+        $security_answer3 = trim($_POST['security_answer3'] ?? '');
+        $allowedQuestions = [
+            'Who is your best friend in Elementary?',
+            'What is the name of your favorite pet?',
+            'Who is your favorite teacher in high school?'
+        ];
+
 
         // Map 'Other' extension to the custom input value
         if (strtolower($extension_name) === 'other') {
@@ -77,6 +82,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Country is required";
         if (empty($zip_code))
             $errors[] = "Zip Code is required";
+
+        // Three different secret questions, each answered
+        $chosenQuestions = [$security_question1, $security_question2, $security_question3];
+        if (in_array('', $chosenQuestions, true) || $security_answer1 === '' || $security_answer2 === '' || $security_answer3 === '') {
+            $errors[] = "Please select and answer all 3 security questions";
+        } elseif (array_diff($chosenQuestions, $allowedQuestions)) {
+            $errors[] = "Invalid security question selected";
+        } elseif (count(array_unique($chosenQuestions)) !== 3) {
+            $errors[] = "Please select 3 different security questions";
+        }
 
         if (empty($errors)) {
             // Validate ID Number format
@@ -225,9 +240,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($stmt->execute()) {
                     // Hash security answers and insert
-                    $answer1_hash = Security::hashPassword($security_answer1);
-                    $answer2_hash = Security::hashPassword($security_answer2);
-                    $answer3_hash = Security::hashPassword($security_answer3);
+                    $answer1_hash = Security::hashAnswer($security_answer1);
+                    $answer2_hash = Security::hashAnswer($security_answer2);
+                    $answer3_hash = Security::hashAnswer($security_answer3);
 
                     $stmt2 = $conn->prepare("INSERT INTO security_questions (user_id, question1, answer1_hash, question2, answer2_hash, question3, answer3_hash) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
@@ -244,10 +259,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'role' => 'user'
                             ]);
 
-                            // On success: redirect to login with pending approval message
-                            $_SESSION['success_message'] = 'Registration submitted successfully! Your account is pending administrator approval before you can log in.';
+                            // Account must be confirmed with an emailed OTP before admins can approve it
+                            $stmtV = $conn->prepare("UPDATE users SET email_verified = 0 WHERE id_number = ?");
+                            $stmtV->bind_param("s", $id_number);
+                            $stmtV->execute();
+                            $stmtV->close();
+
+                            $_SESSION['verify_account'] = [
+                                'id_number' => $id_number,
+                                'username' => $username,
+                                'email' => $email,
+                                'name' => trim($first_name . ' ' . $last_name)
+                            ];
+                            $_SESSION['verify_account_send'] = true;
                             $_SESSION['last_login_attempt'] = $username;
-                            header("Location: login.php");
+                            header("Location: verify-account.php");
                             exit();
                         } else {
                             $errors[] = "Failed to save security questions: " . $stmt2->error;
@@ -284,9 +310,10 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="../css/regstration.css">
+  <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
-<body>
+<body class="bh-auth">
     <header>
         <div class="logo">
             <h1 style="display: flex; align-items: center; gap: 8px;"><i class="fas fa-building" style="font-size: 20px; color: #3b82f6;"></i> Boarding<span>Hub</span></h1>
@@ -476,55 +503,57 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
                 <div class="form-section">
                     <h3><i class="fas fa-map-marker-alt"></i> Address Information</h3>
 
-                    <!-- Row: Purok/Street and Barangay -->
-                    <div class="row">
-                        <div class="col">
-                            <div class="form-group">
-                                <label class="form-label">Purok/Street <span class="required">*</span></label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-road input-icon"></i>
-                                    <input type="text" name="purok_street" class="form-input"
-                                        placeholder="Enter your street address" required
-                                        onblur="validateAddress(this, 'Purok/Street')"
-                                        value="<?php echo isset($_POST['purok_street']) ? htmlspecialchars($_POST['purok_street']) : ''; ?>">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-group">
-                                <label class="form-label">Barangay <span class="required">*</span></label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-map-marked input-icon"></i>
-                                    <input type="text" name="barangay" class="form-input" placeholder="Enter barangay"
-                                        required onblur="validateAddress(this, 'Barangay')"
-                                        value="<?php echo isset($_POST['barangay']) ? htmlspecialchars($_POST['barangay']) : ''; ?>">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="ac-help"><i class="fas fa-lightbulb"></i> Start typing and pick from the list. Choose your Province first, then City/Municipality, then Barangay.</p>
 
-                    <!-- Row: City/Municipality and Province -->
+                    <!-- Row: Province and City/Municipality (suggestions cascade from here) -->
                     <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label class="form-label">Province <span class="required">*</span></label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-globe input-icon"></i>
+                                    <input type="text" name="province" class="form-input" placeholder="Search province, e.g. Agusan del Sur"
+                                        required autocomplete="off" onblur="validateAddress(this, 'Province')"
+                                        value="<?php echo isset($_POST['province']) ? htmlspecialchars($_POST['province']) : ''; ?>">
+                                </div>
+                            </div>
+                        </div>
                         <div class="col">
                             <div class="form-group">
                                 <label class="form-label">City/Municipality <span class="required">*</span></label>
                                 <div class="input-with-icon">
                                     <i class="fas fa-city input-icon"></i>
                                     <input type="text" name="city_municipality" class="form-input"
-                                        placeholder="Enter city or municipality" required
+                                        placeholder="Search city or municipality" required autocomplete="off"
                                         onblur="validateAddress(this, 'City/Municipality')"
                                         value="<?php echo isset($_POST['city_municipality']) ? htmlspecialchars($_POST['city_municipality']) : ''; ?>">
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Row: Barangay and Purok/Street -->
+                    <div class="row">
                         <div class="col">
                             <div class="form-group">
-                                <label class="form-label">Province <span class="required">*</span></label>
+                                <label class="form-label">Barangay <span class="required">*</span></label>
                                 <div class="input-with-icon">
-                                    <i class="fas fa-globe input-icon"></i>
-                                    <input type="text" name="province" class="form-input" placeholder="Enter province"
-                                        required onblur="validateAddress(this, 'Province')"
-                                        value="<?php echo isset($_POST['province']) ? htmlspecialchars($_POST['province']) : ''; ?>">
+                                    <i class="fas fa-map-marked input-icon"></i>
+                                    <input type="text" name="barangay" class="form-input" placeholder="Search barangay"
+                                        required autocomplete="off" onblur="validateAddress(this, 'Barangay')"
+                                        value="<?php echo isset($_POST['barangay']) ? htmlspecialchars($_POST['barangay']) : ''; ?>">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label class="form-label">Purok/Street <span class="required">*</span></label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-road input-icon"></i>
+                                    <input type="text" name="purok_street" class="form-input"
+                                        placeholder="e.g. Purok 3, Rizal St." required
+                                        onblur="validateAddress(this, 'Purok/Street')"
+                                        value="<?php echo isset($_POST['purok_street']) ? htmlspecialchars($_POST['purok_street']) : ''; ?>">
                                 </div>
                             </div>
                         </div>
@@ -722,6 +751,23 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
     <script src="../js/auth.js"></script>
     <script src="../js/validation.js"></script>
     <script src="../js/multi_step.js"></script>
+    <script>
+    // Each secret question can only be picked once
+    (function () {
+        const selects = [1, 2, 3].map(i => document.querySelector('select[name="security_question' + i + '"]')).filter(Boolean);
+        function sync() {
+            const taken = selects.map(s => s.value);
+            selects.forEach(s => {
+                [...s.options].forEach(o => {
+                    o.disabled = o.value !== '' && o.value !== s.value && taken.includes(o.value);
+                });
+            });
+        }
+        selects.forEach(s => s.addEventListener('change', sync));
+        sync();
+    })();
+    </script>
+    <script src="../js/address_autocomplete.js?v=<?php echo filemtime(__DIR__ . '/../js/address_autocomplete.js'); ?>"></script>
     <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#94a3b8;font-family:'Plus Jakarta Sans',sans-serif;border-top:1px solid rgba(255,255,255,0.1);">
         &copy; <?php echo date('Y'); ?> BoardingHub. All rights reserved.
     </footer>

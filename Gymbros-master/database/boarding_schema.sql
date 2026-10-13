@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `boarding_houses` (
   `image_path` varchar(255) NOT NULL DEFAULT '../images/boarding_house_exterior.jpg',
   `amenities` text NOT NULL,
   `featured` tinyint(1) NOT NULL DEFAULT 1,
+  `posted_by` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
