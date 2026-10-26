@@ -5,6 +5,7 @@ require_once '../includes/auth.php';
 require_once '../includes/validation.php';
 require_once '../includes/otp.php';
 require_once '../includes/mailer.php';
+require_once '../includes/account_id.php';
 
 header('Content-Type: application/json');
 
@@ -95,7 +96,6 @@ switch ($action) {
             exit();
         }
 
-        $id_number = $db->sanitize($input['id_number'] ?? '');
         $username = $db->sanitize($input['username'] ?? '');
         $first_name = $db->sanitize($input['first_name'] ?? '');
         $middle_name = $db->sanitize($input['middle_name'] ?? '');
@@ -144,7 +144,7 @@ switch ($action) {
             $privileges = NULL;
         }
 
-        if (empty($id_number) || empty($username) || empty($first_name) || empty($last_name) || empty($email)) {
+        if (empty($username) || empty($first_name) || empty($last_name) || empty($email)) {
             echo json_encode(['success' => false, 'message' => 'Please fill in all required fields']);
             exit();
         }
@@ -154,6 +154,15 @@ switch ($action) {
         // Validate Username format
         $uErr = Validation::validateUsername($username);
         if (!empty($uErr)) $vErrors = array_merge($vErrors, $uErr);
+
+        // Validate names with the same rules as the public Register form
+        $first_name = preg_replace('/\s+/', ' ', trim($first_name));
+        $middle_name = preg_replace('/\s+/', ' ', trim($middle_name));
+        $last_name = preg_replace('/\s+/', ' ', trim($last_name));
+        $vErrors = array_merge($vErrors, Validation::validateName($first_name, 'First Name'), Validation::validateName($last_name, 'Last Name'));
+        if ($middle_name !== '') {
+            $vErrors = array_merge($vErrors, Validation::validateName($middle_name, 'Middle Name'));
+        }
 
         // Validate Email format
         $eErr = Validation::validateEmail($email);
@@ -174,18 +183,12 @@ switch ($action) {
         }
         $stmt->close();
 
-        // Check Employee ID & Username uniqueness
-        $stmt = $conn->prepare("SELECT id_number, username FROM users WHERE id_number = ? OR username = ?");
-        $stmt->bind_param("ss", $id_number, $username);
+        // Check Username uniqueness
+        $stmt = $conn->prepare("SELECT username FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
         $stmt->execute();
-        $resUniq = $stmt->get_result();
-        while ($rowU = $resUniq->fetch_assoc()) {
-            if ($rowU['id_number'] === $id_number) {
-                $vErrors[] = "Employee ID '$id_number' already exists in system";
-            }
-            if (strtolower($rowU['username']) === strtolower($username)) {
-                $vErrors[] = "Username '$username' is already taken";
-            }
+        if ($stmt->get_result()->num_rows > 0) {
+            $vErrors[] = "Username '$username' is already taken";
         }
         $stmt->close();
 
@@ -208,6 +211,9 @@ switch ($action) {
         $password_hash = Security::hashPassword($tempPassword);
         $mustChangePassword = 1;
 
+        // Employee / Account ID is assigned automatically (YYYY-NNNN), only once everything is valid
+        $id_number = AccountId::generate($conn);
+
         $stmt = $conn->prepare("INSERT INTO users (id_number, username, password_hash, first_name, middle_name, last_name, extension_name, birthdate, age, email, sex, purok_street, barangay, city_municipality, province, country, zip_code, role, status, privileges, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssssssssisssssssssssi", $id_number, $username, $password_hash, $first_name, $middle_name, $last_name, $extension_name, $birthdate, $age, $email, $sex, $purok_street, $barangay, $city_municipality, $province, $country, $zip_code, $role, $status, $privileges, $mustChangePassword);
 
@@ -221,9 +227,9 @@ switch ($action) {
             // Sent on a detached background process — a synchronous SMTP handshake to
             // Gmail measured 5s+ from this host with no loading feedback in the UI,
             // which made account creation look hung. This returns almost immediately.
-            $emailDispatched = GymBrosMailer::sendAccountCreatedEmailInBackground($email, $recipientName, $username, $tempPassword, $roleLabel);
+            $emailDispatched = GymBrosMailer::sendAccountCreatedEmailInBackground($email, $recipientName, $username, $tempPassword, $roleLabel, $id_number);
 
-            $message = "Account '$username' ($role) created successfully.";
+            $message = "Account '$username' ($role) created successfully with Account ID $id_number.";
             $message .= $emailDispatched
                 ? " The temporary password is being emailed to $email."
                 : " Warning: the account was created but the welcome email could not be queued — please share the temporary password with the user manually.";
@@ -244,7 +250,7 @@ switch ($action) {
                 $message .= " Your Super Admin account has been deactivated — only one Super Admin may be active at a time. You will be logged out.";
             }
 
-            echo json_encode(['success' => true, 'message' => $message, 'temp_password' => $emailDispatched ? null : $tempPassword, 'self_demoted' => $selfDemoted]);
+            echo json_encode(['success' => true, 'message' => $message, 'id_number' => $id_number, 'temp_password' => $emailDispatched ? null : $tempPassword, 'self_demoted' => $selfDemoted]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to create account: ' . $conn->error]);
         }

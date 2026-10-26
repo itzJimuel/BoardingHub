@@ -3,6 +3,7 @@
 require_once '../includes/config.php';
 require_once '../includes/security.php';
 require_once '../includes/validation.php';
+require_once '../includes/account_id.php';
 
 $errors = [];
 $success = false;
@@ -16,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn = $db->getConnection();
 
         // Collect and sanitize all form data with proper null checks
-        $id_number = $db->sanitize($_POST['id_number'] ?? '');
         $username = $db->sanitize($_POST['username'] ?? '');
         $first_name = $db->sanitize($_POST['first_name'] ?? '');
         $middle_name = $db->sanitize($_POST['middle_name'] ?? '');
@@ -56,8 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Basic validation
-        if (empty($id_number))
-            $errors[] = "ID Number is required";
         if (empty($username))
             $errors[] = "Username is required";
         if (empty($first_name))
@@ -94,24 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($errors)) {
-            // Validate ID Number format
-            $idErrors = Validation::validateIDFormat($id_number);
-            $errors = array_merge($errors, $idErrors);
-
-            // Check if ID already exists
-            $stmt = $conn->prepare("SELECT id_number FROM users WHERE id_number = ?");
-            if ($stmt) {
-                $stmt->bind_param("s", $id_number);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($result->num_rows > 0) {
-                    $errors[] = "ID Number '$id_number' already exists in the database";
-                }
-                $stmt->close();
-            } else {
-                $errors[] = "Database error: " . $conn->error;
-            }
-
             // Check if username exists
             $stmt = $conn->prepare("SELECT username FROM users WHERE username = ?");
             if ($stmt) {
@@ -209,6 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Hash password
             $password_hash = Security::hashPassword($password);
 
+            // Account ID is assigned automatically (YYYY-NNNN), only once everything is valid
+            $id_number = AccountId::generate($conn);
+
             // Insert user with role 'user' and status 'pending'
             $role = 'user';
             $status = 'pending';
@@ -295,6 +278,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Shown in the form only; the real ID is reserved when the registration is saved
+$previewDb = new Database();
+$nextAccountId = AccountId::preview($previewDb->getConnection());
+$previewDb->close();
+
 $csrf_token = Security::generateCSRFToken();
 $birthdate_max = date('Y-m-d', strtotime('-18 years'));
 ?>
@@ -370,12 +358,13 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
                     <h3><i class="fas fa-user"></i> Personal Information</h3>
 
                     <div class="form-group">
-                        <label class="form-label">ID Number <span class="required">*</span></label>
+                        <label class="form-label">Account ID</label>
                         <div class="input-with-icon">
                             <i class="fas fa-id-card input-icon"></i>
-                            <input type="text" name="id_number" class="form-input" placeholder="xxxx-xxxx"
-                                pattern="\d{4}-\d{4}" title="Format: xxxx-xxxx" required oninput="formatID(this)"
-                                value="<?php echo isset($_POST['id_number']) ? htmlspecialchars($_POST['id_number']) : ''; ?>">
+                            <div class="form-input" style="display: flex; align-items: center; gap: 6px; color: #94a3b8; cursor: default;" title="Assigned automatically when you register">
+                                <strong style="color: #f8fafc; letter-spacing: 0.5px;"><?php echo htmlspecialchars($nextAccountId); ?></strong>
+                                <span>· assigned automatically</span>
+                            </div>
                         </div>
                     </div>
 
@@ -594,7 +583,7 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
                             <div class="input-with-icon">
                                 <i class="fas fa-user input-icon"></i>
                                 <input type="text" name="username" class="form-input" placeholder="Choose a username"
-                                    pattern="[a-zA-Z0-9_]{3,20}" title="3-20 characters, letters, numbers, underscore only"
+                                    pattern="[a-zA-Z0-9._@!#$*\-]{3,20}" title="3-20 characters: letters, numbers, and . _ - @ ! # $ * (no spaces)"
                                     required
                                     value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
                                 <div id="username-feedback"></div>
@@ -748,9 +737,9 @@ $birthdate_max = date('Y-m-d', strtotime('-18 years'));
         </div>
     </div>
 
-    <script src="../js/auth.js"></script>
-    <script src="../js/validation.js"></script>
-    <script src="../js/multi_step.js"></script>
+    <script src="../js/auth.js?v=<?php echo filemtime(__DIR__ . '/../js/auth.js'); ?>"></script>
+    <script src="../js/validation.js?v=<?php echo filemtime(__DIR__ . '/../js/validation.js'); ?>"></script>
+    <script src="../js/multi_step.js?v=<?php echo filemtime(__DIR__ . '/../js/multi_step.js'); ?>"></script>
     <script>
     // Each secret question can only be picked once
     (function () {

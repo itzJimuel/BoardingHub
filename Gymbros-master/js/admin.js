@@ -998,9 +998,85 @@ function processDeleteRequest(decision) {
     });
 }
 
+// Live validation for the Create Account form. Mirrors the server rules in
+// Validation::validateUsername / validateName (the same rules as the Register form).
+const CREATE_ACCOUNT_RULES = {
+    'create-username': { label: 'Username', required: true, check: usernameErrors },
+    'create-firstname': { label: 'First Name', required: true, check: nameErrors },
+    'create-middlename': { label: 'Middle Name', required: false, check: nameErrors },
+    'create-lastname': { label: 'Last Name', required: true, check: nameErrors }
+};
+
+function usernameErrors(value) {
+    if (/\s/.test(value)) return ['Spaces are not allowed'];
+    if (!/^[a-zA-Z0-9._@!#$*-]*$/.test(value)) return ['Only letters, numbers and . _ - @ ! # $ * are allowed'];
+    if (value.length < 3 || value.length > 20) return ['Must be 3-20 characters long'];
+    return [];
+}
+
+function nameErrors(value) {
+    const errors = [];
+    const trimmed = value.trim();
+    if (/[^A-Za-z0-9\s]/.test(trimmed)) errors.push('Special characters are not allowed');
+    if (/\d/.test(trimmed)) errors.push('Numbers are not allowed');
+    if (/\s{2,}/.test(value)) errors.push('Double spaces are not allowed');
+    if (/([a-z])\1\1/i.test(trimmed)) errors.push('Three identical letters in a row are not allowed');
+    if (/^[A-Z\s]+$/.test(trimmed)) errors.push('All capital letters are not allowed');
+    if (!/^[A-Z]/.test(trimmed)) errors.push('Must start with a capital letter');
+    if (!errors.length && trimmed.split(/\s+/).some(word => !/^[A-Z][a-z]*$/.test(word))) {
+        errors.push('Each word must start with a capital letter followed by lowercase letters');
+    }
+    return errors;
+}
+
+// Validates one field, marks it red (with the reasons underneath) or green, returns true when valid
+function validateCreateField(id) {
+    const input = document.getElementById(id);
+    const rule = CREATE_ACCOUNT_RULES[id];
+    if (!input || !rule) return true;
+
+    const value = input.value;
+    let errors = [];
+    if (value.trim() === '') {
+        if (rule.required) errors = [`${rule.label} is required`];
+    } else {
+        errors = rule.check(value);
+    }
+
+    const field = input.closest('.form-field');
+    let msg = field.querySelector('.field-error-msg');
+    if (!msg) {
+        msg = document.createElement('div');
+        msg.className = 'field-error-msg';
+        field.appendChild(msg);
+    }
+    msg.innerHTML = errors.map(err => `<span><i class="fas fa-exclamation-circle"></i> ${escapeHtml(err)}</span>`).join('');
+    msg.style.display = errors.length ? 'flex' : 'none';
+    input.classList.toggle('is-invalid', errors.length > 0);
+    input.classList.toggle('is-valid', errors.length === 0 && value.trim() !== '');
+
+    return errors.length === 0;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    Object.keys(CREATE_ACCOUNT_RULES).forEach(id => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', () => validateCreateField(id));
+        input.addEventListener('blur', () => validateCreateField(id));
+    });
+});
+
 // Super Admin Create Account Form Submit
 function submitCreateAccountForm(e) {
     e.preventDefault();
+
+    const invalidIds = Object.keys(CREATE_ACCOUNT_RULES).filter(id => !validateCreateField(id));
+    if (invalidIds.length) {
+        showToast('Please fix the fields marked in red before creating the account.', 'error');
+        document.getElementById(invalidIds[0]).focus();
+        return;
+    }
 
     const selectedRole = document.getElementById('create-role').value;
     if (selectedRole === 'superadmin') {
@@ -1033,7 +1109,6 @@ function submitCreateAccountForm(e) {
     const payload = {
         action: 'create_account',
         csrf_token: csrfToken,
-        id_number: document.getElementById('create-id-number').value,
         username: document.getElementById('create-username').value,
         first_name: document.getElementById('create-firstname').value,
         middle_name: document.getElementById('create-middlename').value,
@@ -1061,9 +1136,12 @@ function submitCreateAccountForm(e) {
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
+            // The page reloads right after, so the new ID is confirmed in a dialog the admin can read
+            let notice = 'Account created successfully.\n\nEmployee / Account ID: ' + data.id_number;
             if (data.temp_password) {
-                alert('The welcome email could not be delivered. Please share this temporary password with the user manually:\n\n' + data.temp_password);
+                notice += '\n\nThe welcome email could not be delivered. Please share this temporary password with the user manually:\n\n' + data.temp_password;
             }
+            alert(notice);
             document.getElementById('form-create-account').reset();
             if (data.self_demoted) {
                 setTimeout(() => { window.location.href = 'logout.php'; }, 1800);

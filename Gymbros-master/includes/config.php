@@ -202,6 +202,16 @@ class Database
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
     }
 
+    // Yearly counter behind the automatic YYYY-NNNN Account IDs (see account_id.php)
+    $result = $this->connection->query("SHOW TABLES LIKE 'id_sequences'");
+    if ($result && $result->num_rows === 0) {
+      $this->connection->query("CREATE TABLE `id_sequences` (
+        `year` smallint(4) NOT NULL,
+        `last_number` int(11) NOT NULL DEFAULT 0,
+        PRIMARY KEY (`year`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+    }
+
     // Check & Add membership_tier, phone_number, bio, fitness_goal to users table
     $colCheck = $this->connection->query("SHOW COLUMNS FROM `users` LIKE 'membership_tier'");
     if ($colCheck && $colCheck->num_rows === 0) {

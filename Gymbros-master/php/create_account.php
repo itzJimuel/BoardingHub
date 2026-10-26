@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once '../includes/security.php';
 require_once '../includes/auth.php';
+require_once '../includes/account_id.php';
 
 // Redirect to login if not logged in
 if (!Auth::isLoggedIn()) {
@@ -34,6 +35,9 @@ if ($resP) $pendingRequestsTotal += (int)$resP->fetch_assoc()['cnt'];
 $resD = $conn->query("SELECT COUNT(*) as cnt FROM delete_requests WHERE status = 'pending'");
 if ($resD) $pendingRequestsTotal += (int)$resD->fetch_assoc()['cnt'];
 
+// Shown in the form only; the real ID is assigned on save
+$nextAccountId = AccountId::preview($conn);
+
 $csrfToken = Security::generateCSRFToken();
 ?>
 <!DOCTYPE html>
@@ -46,7 +50,7 @@ $csrfToken = Security::generateCSRFToken();
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="stylesheet" href="../css/admin.css?v=<?php echo filemtime(__DIR__ . '/../css/admin.css'); ?>">
   <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
 </head>
 
@@ -152,8 +156,9 @@ $csrfToken = Security::generateCSRFToken();
               <i class="fas fa-shield-alt"></i> Essential Administrator Account Rules
             </h4>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; font-size: 12px; color: #cbd5e1;">
-              <div><i class="fas fa-id-badge" style="color: #60a5fa;"></i> <strong>Employee ID:</strong> Must be unique in system</div>
-              <div><i class="fas fa-user-check" style="color: #60a5fa;"></i> <strong>Username:</strong> 3-20 letters, numbers, or underscores</div>
+              <div><i class="fas fa-id-badge" style="color: #60a5fa;"></i> <strong>Employee ID:</strong> Assigned automatically (YYYY-NNNN)</div>
+              <div><i class="fas fa-user-check" style="color: #60a5fa;"></i> <strong>Username:</strong> 3-20 characters: letters, numbers, . _ - @ ! # $ *</div>
+              <div><i class="fas fa-font" style="color: #60a5fa;"></i> <strong>Names:</strong> Start with a capital letter, letters only (no numbers)</div>
               <div><i class="fas fa-key" style="color: #60a5fa;"></i> <strong>Password:</strong> Auto-generated & emailed to the account holder</div>
               <div><i class="fas fa-birthday-cake" style="color: #60a5fa;"></i> <strong>Age Requirement:</strong> Minimum 18 years old</div>
               <div><i class="fas fa-envelope" style="color: #60a5fa;"></i> <strong>Email Address:</strong> Valid & unique email address</div>
@@ -171,8 +176,9 @@ $csrfToken = Security::generateCSRFToken();
           <form id="form-create-account" onsubmit="submitCreateAccountForm(event)">
             <div class="form-grid">
               <div class="form-field">
-                <label><i class="fas fa-id-card" style="color: var(--accent);"></i> Employee ID / Account ID *</label>
-                <input type="text" id="create-id-number" placeholder="e.g. EMP-2025-001" required>
+                <label><i class="fas fa-id-card" style="color: var(--accent);"></i> Employee ID / Account ID</label>
+                <input type="text" value="<?php echo htmlspecialchars($nextAccountId); ?>" readonly tabindex="-1" title="Assigned automatically when the account is saved" style="cursor: default; opacity: 0.75;">
+                <small style="color: #94a3b8; font-size: 11px;">Next available ID, assigned automatically on save</small>
               </div>
 
               <div class="form-field">

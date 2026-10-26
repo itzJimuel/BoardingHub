@@ -255,7 +255,7 @@ $csrf_token = Security::generateCSRFToken();
         </form>
     </div>
 
-    <script src="../js/auth.js"></script>
+    <script src="../js/auth.js?v=<?php echo filemtime(__DIR__ . '/../js/auth.js'); ?>"></script>
     <script src="../js/timer.js"></script>
     <footer style="margin-top:40px;padding:16px 0;text-align:center;color:#94a3b8;font-family:'Plus Jakarta Sans',sans-serif;border-top:1px solid rgba(255,255,255,0.1);">
         &copy; <?php echo date('Y'); ?> BoardingHub. All rights reserved.
