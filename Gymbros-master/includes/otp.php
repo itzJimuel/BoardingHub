@@ -109,7 +109,7 @@ class OtpService
     /**
      * Send email containing OTP via GymBrosMailer (SMTP / PHP mail fallback)
      */
-    public static function sendEmailOTP($email, $otpCode, $recipientName = 'GymBros Member', $purpose = 'forgot_password')
+    public static function sendEmailOTP($email, $otpCode, $recipientName = 'BoardingHub Member', $purpose = 'forgot_password')
     {
         require_once __DIR__ . '/mailer.php';
         return GymBrosMailer::sendOtpEmail($email, $otpCode, $recipientName, $purpose);
