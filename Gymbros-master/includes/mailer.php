@@ -148,7 +148,7 @@ class GymBrosMailer
         $user = defined('SMTP_USER') ? trim(SMTP_USER) : '';
         $pass = defined('SMTP_PASS') ? str_replace(' ', '', trim(SMTP_PASS)) : '';
         $fromEmail = defined('SMTP_FROM_EMAIL') && !empty(SMTP_FROM_EMAIL) ? trim(SMTP_FROM_EMAIL) : (!empty($user) ? $user : 'no-reply@gymbros.com');
-        $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'GymBros Security';
+        $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'BoardingHub Security';
 
         $timeout = 15;
         $socketHost = ($secure === 'ssl') ? "ssl://$host" : $host;
@@ -283,7 +283,7 @@ class GymBrosMailer
         $headers[] = "To: $toHeader";
         $headers[] = "Subject: $subjectHeader";
         $headers[] = "MIME-Version: 1.0";
-        $headers[] = "X-Mailer: GymBros-Mailer/1.0";
+        $headers[] = "X-Mailer: BoardingHub-Mailer/1.0";
         $headers[] = "Content-Type: multipart/alternative; boundary=\"$boundary\"";
 
         $body = implode("\r\n", $headers) . "\r\n\r\n";
@@ -324,7 +324,7 @@ class GymBrosMailer
     private static function sendViaPhpMail($toEmail, $subject, $htmlContent, $plainContent, $recipientName)
     {
         $fromEmail = defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : 'security@gymbros.com';
-        $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'GymBros Security';
+        $fromName = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'BoardingHub Security';
 
         $boundary = "----=_GymBros_NextPart_" . md5(uniqid(time(), true));
         $toHeader = !empty($recipientName) ? "$recipientName <$toEmail>" : $toEmail;
@@ -333,7 +333,7 @@ class GymBrosMailer
         $headers[] = "From: $fromName <$fromEmail>";
         $headers[] = "Reply-To: $fromEmail";
         $headers[] = "MIME-Version: 1.0";
-        $headers[] = "X-Mailer: GymBros-PHP/" . phpversion();
+        $headers[] = "X-Mailer: BoardingHub-PHP/" . phpversion();
         $headers[] = "Content-Type: multipart/alternative; boundary=\"$boundary\"";
 
         $message = "--$boundary\r\n";
@@ -365,20 +365,20 @@ class GymBrosMailer
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GymBros Verification Code</title>
+  <title>BoardingHub Verification Code</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: 'Segoe UI', Arial, sans-serif; color: #f8fafc;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b0f19; padding: 30px 10px;">
     <tr>
       <td align="center">
         <!-- Main Card -->
-        <table role="presentation" width="100%" max-width="540" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #111827; border-radius: 16px; border: 1px solid rgba(255, 94, 0, 0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
+        <table role="presentation" width="100%" max-width="540" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #111827; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
           
           <!-- Header Banner -->
           <tr>
-            <td style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 25px 30px; text-align: center; border-bottom: 2px solid #ff5e00;">
+            <td style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 25px 30px; text-align: center; border-bottom: 2px solid #3b82f6;">
               <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px; color: #ffffff;">
-                Gym<span style="color: #ff5e00;">Bros</span>
+                Boarding<span style="color: #3b82f6;">Hub</span>
               </h1>
               <p style="margin: 5px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8;">
                 Account Security & Authentication
@@ -402,11 +402,11 @@ class GymBrosMailer
               <!-- OTP Code Display Box -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 25px 0;">
                 <tr>
-                  <td align="center" style="background: rgba(255, 94, 0, 0.08); border: 2px dashed #ff5e00; border-radius: 12px; padding: 20px;">
-                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #ff7b00; font-weight: 600; margin-bottom: 8px;">
+                  <td align="center" style="background: rgba(59, 130, 246, 0.08); border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #60a5fa; font-weight: 600; margin-bottom: 8px;">
                       Your One-Time PIN (OTP)
                     </div>
-                    <div style="font-family: 'Courier New', Courier, monospace, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #ffffff; text-shadow: 0 0 10px rgba(255, 94, 0, 0.5);">
+                    <div style="font-family: 'Courier New', Courier, monospace, monospace; font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #ffffff; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
                       {$formattedOtp}
                     </div>
                     <div style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
@@ -419,7 +419,7 @@ class GymBrosMailer
               <!-- Security Notice -->
               <div style="background-color: #1e293b; border-left: 4px solid #ef4444; border-radius: 6px; padding: 12px 16px; margin: 25px 0 15px 0;">
                 <p style="margin: 0; font-size: 13px; color: #fca5a5; line-height: 1.5;">
-                  <strong>⚠️ Security Alert:</strong> Never share this OTP code with anyone. GymBros staff and administrators will never ask for your PIN.
+                  <strong>⚠️ Security Alert:</strong> Never share this OTP code with anyone. BoardingHub staff and administrators will never ask for your PIN.
                 </p>
               </div>
 
@@ -433,7 +433,7 @@ class GymBrosMailer
           <tr>
             <td style="background-color: #0b0f19; padding: 20px 30px; text-align: center; border-top: 1px solid #1f2937;">
               <p style="margin: 0; font-size: 12px; color: #64748b;">
-                &copy; {$year} GymBros Fitness HQ. All rights reserved.
+                &copy; {$year} BoardingHub. All rights reserved.
               </p>
               <p style="margin: 5px 0 0 0; font-size: 11px; color: #475569;">
                 This is an automated security transmission. Please do not reply directly to this email.
@@ -455,15 +455,15 @@ HTML;
      */
     private static function buildOtpPlainTextTemplate($recipientName, $otpCode, $actionTitle, $actionDescription)
     {
-        return "GymBros Security: $actionTitle\n\n"
+        return "BoardingHub Security: $actionTitle\n\n"
              . "Hello $recipientName,\n\n"
              . "$actionDescription\n\n"
              . "Your 6-Digit One-Time PIN (OTP) is: $otpCode\n\n"
              . "This code will expire in 10 minutes.\n\n"
-             . "SECURITY NOTICE: Do not share this code with anyone. GymBros staff will never ask for your OTP.\n"
+             . "SECURITY NOTICE: Do not share this code with anyone. BoardingHub staff will never ask for your OTP.\n"
              . "If you did not request this code, please ignore this email or secure your account.\n\n"
              . "Best regards,\n"
-             . "GymBros Security Team\n";
+             . "BoardingHub Security Team\n";
     }
 
     /**
@@ -484,18 +484,18 @@ HTML;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GymBros Account Created</title>
+  <title>BoardingHub Account Created</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: 'Segoe UI', Arial, sans-serif; color: #f8fafc;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0b0f19; padding: 30px 10px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" max-width="540" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #111827; border-radius: 16px; border: 1px solid rgba(255, 94, 0, 0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
+        <table role="presentation" width="100%" max-width="540" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #111827; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden;">
 
           <tr>
-            <td style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 25px 30px; text-align: center; border-bottom: 2px solid #ff5e00;">
+            <td style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 25px 30px; text-align: center; border-bottom: 2px solid #3b82f6;">
               <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px; color: #ffffff;">
-                Gym<span style="color: #ff5e00;">Bros</span>
+                Boarding<span style="color: #3b82f6;">Hub</span>
               </h1>
               <p style="margin: 5px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8;">
                 Account Provisioning Notice
@@ -512,13 +512,13 @@ HTML;
                 Hello <strong>$safeName</strong>,
               </p>
               <p style="margin: 0 0 25px 0; font-size: 14px; line-height: 1.6; color: #94a3b8;">
-                A Super Administrator has created a GymBros $safeRole account for you. Use the temporary credentials below to sign in for the first time.
+                A Super Administrator has created a BoardingHub $safeRole account for you. Use the temporary credentials below to sign in for the first time.
               </p>
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 25px 0;">
                 <tr>
-                  <td style="background: rgba(255, 94, 0, 0.08); border: 2px dashed #ff5e00; border-radius: 12px; padding: 20px;">
-                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #ff7b00; font-weight: 600; margin-bottom: 10px;">
+                  <td style="background: rgba(59, 130, 246, 0.08); border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px;">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #60a5fa; font-weight: 600; margin-bottom: 10px;">
                       Your Login Credentials
                     </div>
                     $accountIdRow
@@ -532,14 +532,14 @@ HTML;
                 </tr>
               </table>
 
-              <div style="background-color: #1e293b; border-left: 4px solid #ff5e00; border-radius: 6px; padding: 12px 16px; margin: 25px 0 15px 0;">
-                <p style="margin: 0; font-size: 13px; color: #fdba74; line-height: 1.5;">
+              <div style="background-color: #1e293b; border-left: 4px solid #3b82f6; border-radius: 6px; padding: 12px 16px; margin: 25px 0 15px 0;">
+                <p style="margin: 0; font-size: 13px; color: #93c5fd; line-height: 1.5;">
                   <strong>&#9888;&#65039; Required on first login:</strong> You will be asked to set a new password and answer 3 security questions before you can access your account.
                 </p>
               </div>
 
               <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.5; color: #64748b;">
-                If you were not expecting this account, please contact your GymBros administrator immediately.
+                If you were not expecting this account, please contact your BoardingHub administrator immediately.
               </p>
             </td>
           </tr>
@@ -547,7 +547,7 @@ HTML;
           <tr>
             <td style="background-color: #0b0f19; padding: 20px 30px; text-align: center; border-top: 1px solid #1f2937;">
               <p style="margin: 0; font-size: 12px; color: #64748b;">
-                &copy; $year GymBros Fitness HQ. All rights reserved.
+                &copy; $year BoardingHub. All rights reserved.
               </p>
               <p style="margin: 5px 0 0 0; font-size: 11px; color: #475569;">
                 This is an automated security transmission. Please do not reply directly to this email.
@@ -569,15 +569,15 @@ HTML;
      */
     private static function buildAccountCreatedPlainTextTemplate($recipientName, $username, $tempPassword, $roleLabel, $accountId = '')
     {
-        return "GymBros: Your $roleLabel Account Has Been Created\n\n"
+        return "BoardingHub: Your $roleLabel Account Has Been Created\n\n"
              . "Hello $recipientName,\n\n"
-             . "A Super Administrator has created a GymBros $roleLabel account for you.\n\n"
+             . "A Super Administrator has created a BoardingHub $roleLabel account for you.\n\n"
              . ($accountId === '' ? '' : "Account ID: $accountId\n")
              . "Username: $username\n"
              . "Temporary Password: $tempPassword\n\n"
              . "REQUIRED ON FIRST LOGIN: You will be asked to set a new password and answer 3 security questions before you can access your account.\n\n"
-             . "If you were not expecting this account, please contact your GymBros administrator immediately.\n\n"
+             . "If you were not expecting this account, please contact your BoardingHub administrator immediately.\n\n"
              . "Best regards,\n"
-             . "GymBros Security Team\n";
+             . "BoardingHub Security Team\n";
     }
 }
