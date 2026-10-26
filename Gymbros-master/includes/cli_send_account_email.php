@@ -30,5 +30,6 @@ GymBrosMailer::sendAccountCreatedEmail(
     $data['recipientName'] ?? '',
     $data['username'] ?? '',
     $data['tempPassword'] ?? '',
-    $data['roleLabel'] ?? 'Member'
+    $data['roleLabel'] ?? 'Member',
+    $data['accountId'] ?? ''
 );

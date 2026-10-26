@@ -1,14 +1,5 @@
 // Real-time validation functions
 class Validation {
-    static formatID(input) {
-        let value = input.value.replace(/\D/g, '');
-        if (value.length > 4) {
-            value = value.substring(0, 4) + '-' + value.substring(4, 8);
-        }
-        input.value = value;
-        return value;
-    }
-
     static validateName(input, fieldName) {
         let value = input.value.trim();
         
@@ -209,8 +200,8 @@ class Validation {
             return { isValid: false, errors: ['Username must be at least 3 characters'] };
         }
         
-        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-            return { isValid: false, errors: ['Username can only contain letters, numbers, and underscores'] };
+        if (!/^[a-zA-Z0-9._@!#$*-]+$/.test(username)) {
+            return { isValid: false, errors: ['Username can only contain letters, numbers, and . _ - @ ! # $ * (no spaces)'] };
         }
         
         return { isValid: true, errors: [] };
@@ -218,10 +209,6 @@ class Validation {
 }
 
 // Global functions
-window.formatID = function(input) {
-    Validation.formatID(input);
-}
-
 window.validateName = function(input, fieldName) {
     const result = Validation.validateName(input, fieldName);
     showFieldValidation(input, result);

@@ -103,14 +103,6 @@ class Validation
     return [];
   }
 
-  public static function validateIDFormat($id)
-  {
-    if (!preg_match('/^\d{4}-\d{4}$/', $id)) {
-      return ["ID must be in format xxxx-xxxx (numbers only)"];
-    }
-    return [];
-  }
-
   public static function validateEmail($email)
   {
     if (empty($email)) {
@@ -184,8 +176,9 @@ class Validation
       return ["Username must be 3-20 characters long"];
     }
 
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-      return ["Username can only contain letters, numbers, and underscores"];
+    // Symbols limited to ones that survive sanitize() unchanged, so login still matches
+    if (!preg_match('/^[a-zA-Z0-9._@!#$*-]+$/', $username)) {
+      return ["Username can only contain letters, numbers, and . _ - @ ! # $ * (no spaces)"];
     }
 
     return [];

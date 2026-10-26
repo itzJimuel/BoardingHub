@@ -302,3 +302,10 @@ CREATE TABLE IF NOT EXISTS `user_body_metrics` (
   PRIMARY KEY (`id`),
   KEY `idx_metrics_user` (`user_id`, `recorded_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Create id_sequences table (yearly counter for automatic YYYY-NNNN Account IDs)
+CREATE TABLE IF NOT EXISTS `id_sequences` (
+  `year` smallint(4) NOT NULL,
+  `last_number` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

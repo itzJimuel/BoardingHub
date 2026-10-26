@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         unset($_SESSION['verify_account'], $_SESSION['verify_last_sent']);
-        $_SESSION['success_message'] = 'Email verified! Your account is now waiting for administrator approval before you can log in.';
+        $_SESSION['success_message'] = "Email verified! Your Account ID is {$pending['id_number']}. Your account is now waiting for administrator approval before you can log in.";
         header("Location: login.php");
         exit();
       }
@@ -118,6 +118,7 @@ $csrf_token = Security::generateCSRFToken();
     <div class="form-header">
       <div class="icon-circle"><i class="fas fa-envelope-open-text"></i></div>
       <h1>Verify Your <span>Account</span></h1>
+      <p>Your Account ID is <strong><?php echo htmlspecialchars($pending['id_number']); ?></strong>. Please keep it for your records.</p>
       <p>Enter the 6-digit One-Time PIN we sent to <strong><?php echo htmlspecialchars($maskedEmail); ?></strong>. The code expires in 15 minutes.</p>
     </div>
 

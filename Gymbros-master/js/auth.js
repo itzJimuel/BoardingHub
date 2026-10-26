@@ -14,7 +14,7 @@ class AuthHelper {
     }
 
     static validateUsername(username) {
-        const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
+        const usernameRegex = /^[a-zA-Z0-9._@!#$*-]{3,20}$/;
         return usernameRegex.test(username);
     }
 
@@ -46,11 +46,11 @@ class AuthHelper {
         })
         .catch(() => {
             // Fallback client-side validation
-            const isValid = /^[a-zA-Z0-9_]{3,20}$/.test(username);
+            const isValid = AuthHelper.validateUsername(username);
             if (isValid) {
                 feedbackDiv.innerHTML = '<span class="feedback success"><i class="fas fa-check"></i> Username format valid</span>';
             } else {
-                feedbackDiv.innerHTML = '<span class="feedback error"><i class="fas fa-times"></i> Use 3-20 letters, numbers, or underscore</span>';
+                feedbackDiv.innerHTML = '<span class="feedback error"><i class="fas fa-times"></i> Use 3-20 letters, numbers, or . _ - @ ! # $ *</span>';
             }
         });
     }
@@ -60,14 +60,20 @@ class AuthHelper {
         const confirmPassword = document.querySelector('input[name="confirm_password"]');
         
         if (password && confirmPassword) {
-            confirmPassword.addEventListener('input', function() {
-                if (this.value !== password.value) {
-                    this.setCustomValidity('Passwords do not match');
-                    this.style.borderColor = '#dc3545';
+            const checkMatch = function() {
+                if (confirmPassword.value !== password.value) {
+                    confirmPassword.setCustomValidity('Passwords do not match');
+                    confirmPassword.style.borderColor = '#dc3545';
                 } else {
-                    this.setCustomValidity('');
-                    this.style.borderColor = '#28a745';
+                    confirmPassword.setCustomValidity('');
+                    confirmPassword.style.borderColor = '#28a745';
                 }
+            };
+            confirmPassword.addEventListener('input', checkMatch);
+            // Re-check when the password itself is edited, otherwise an old
+            // "do not match" sticks even after both fields are equal again
+            password.addEventListener('input', function() {
+                if (confirmPassword.value !== '') checkMatch();
             });
         }
     }
@@ -319,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (username && !AuthHelper.validateUsername(username.value)) {
                     e.preventDefault();
-                    alert('Username must be 3-20 characters (letters and numbers only)');
+                    alert('Username must be 3-20 characters (letters, numbers, and . _ - @ ! # $ * only)');
                     username.focus();
                     return;
                 }

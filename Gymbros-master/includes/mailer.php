@@ -42,14 +42,15 @@ class GymBrosMailer
      * @param string $username
      * @param string $tempPassword
      * @param string $roleLabel Human-readable role label (e.g. "Administrator")
+     * @param string $accountId Auto-generated Employee / Account ID (e.g. "2026-0001")
      * @return bool
      */
-    public static function sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel = 'Resident')
+    public static function sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel = 'Resident', $accountId = '')
     {
         $subject = "BoardingHub: Your $roleLabel Account Has Been Created";
 
-        $htmlBody = self::buildAccountCreatedHtmlTemplate($recipientName, $username, $tempPassword, $roleLabel);
-        $plainTextBody = self::buildAccountCreatedPlainTextTemplate($recipientName, $username, $tempPassword, $roleLabel);
+        $htmlBody = self::buildAccountCreatedHtmlTemplate($recipientName, $username, $tempPassword, $roleLabel, $accountId);
+        $plainTextBody = self::buildAccountCreatedPlainTextTemplate($recipientName, $username, $tempPassword, $roleLabel, $accountId);
 
         return self::sendMail($toEmail, $subject, $htmlBody, $plainTextBody, $recipientName);
     }
@@ -65,14 +66,14 @@ class GymBrosMailer
      *
      * @return bool True if dispatched to the background (or sent synchronously as a fallback)
      */
-    public static function sendAccountCreatedEmailInBackground($toEmail, $recipientName, $username, $tempPassword, $roleLabel = 'Member')
+    public static function sendAccountCreatedEmailInBackground($toEmail, $recipientName, $username, $tempPassword, $roleLabel = 'Member', $accountId = '')
     {
         $phpCli = 'C:\\xampp\\php\\php.exe';
         $workerScript = __DIR__ . '/cli_send_account_email.php';
 
         if (!@is_file($phpCli) || !@is_file($workerScript) || !function_exists('popen')) {
             // Can't background it — send synchronously so the email still goes out.
-            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel);
+            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel, $accountId);
         }
 
         $payload = json_encode([
@@ -81,18 +82,19 @@ class GymBrosMailer
             'username' => $username,
             'tempPassword' => $tempPassword,
             'roleLabel' => $roleLabel,
+            'accountId' => $accountId,
         ]);
 
         $payloadFile = rtrim(sys_get_temp_dir(), '\\/') . '/gymbros_acct_' . bin2hex(random_bytes(16)) . '.json';
         if (@file_put_contents($payloadFile, $payload) === false) {
-            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel);
+            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel, $accountId);
         }
 
         $cmd = 'start /B "" ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($workerScript) . ' ' . escapeshellarg($payloadFile) . ' > NUL 2>&1';
         $handle = @popen('cmd /c ' . $cmd, 'r');
         if (!$handle) {
             @unlink($payloadFile);
-            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel);
+            return self::sendAccountCreatedEmail($toEmail, $recipientName, $username, $tempPassword, $roleLabel, $accountId);
         }
         pclose($handle);
 
@@ -467,13 +469,14 @@ HTML;
     /**
      * Build rich, responsive, branded HTML email template for new account temp password
      */
-    private static function buildAccountCreatedHtmlTemplate($recipientName, $username, $tempPassword, $roleLabel)
+    private static function buildAccountCreatedHtmlTemplate($recipientName, $username, $tempPassword, $roleLabel, $accountId = '')
     {
         $year = date('Y');
         $safeName = htmlspecialchars($recipientName, ENT_QUOTES, 'UTF-8');
         $safeUsername = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
         $safePassword = htmlspecialchars($tempPassword, ENT_QUOTES, 'UTF-8');
         $safeRole = htmlspecialchars($roleLabel, ENT_QUOTES, 'UTF-8');
+        $accountIdRow = $accountId === '' ? '' : '<div style="font-size: 14px; color: #cbd5e1; margin-bottom: 6px;">Account ID: <strong style="color: #ffffff; font-family: \'Courier New\', Courier, monospace;">' . htmlspecialchars($accountId, ENT_QUOTES, 'UTF-8') . '</strong></div>';
 
         return <<<HTML
 <!DOCTYPE html>
@@ -518,6 +521,7 @@ HTML;
                     <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #ff7b00; font-weight: 600; margin-bottom: 10px;">
                       Your Login Credentials
                     </div>
+                    $accountIdRow
                     <div style="font-size: 14px; color: #cbd5e1; margin-bottom: 6px;">
                       Username: <strong style="color: #ffffff; font-family: 'Courier New', Courier, monospace;">$safeUsername</strong>
                     </div>
@@ -563,11 +567,12 @@ HTML;
     /**
      * Build Plain Text template fallback for new account temp password
      */
-    private static function buildAccountCreatedPlainTextTemplate($recipientName, $username, $tempPassword, $roleLabel)
+    private static function buildAccountCreatedPlainTextTemplate($recipientName, $username, $tempPassword, $roleLabel, $accountId = '')
     {
         return "GymBros: Your $roleLabel Account Has Been Created\n\n"
              . "Hello $recipientName,\n\n"
              . "A Super Administrator has created a GymBros $roleLabel account for you.\n\n"
+             . ($accountId === '' ? '' : "Account ID: $accountId\n")
              . "Username: $username\n"
              . "Temporary Password: $tempPassword\n\n"
              . "REQUIRED ON FIRST LOGIN: You will be asked to set a new password and answer 3 security questions before you can access your account.\n\n"

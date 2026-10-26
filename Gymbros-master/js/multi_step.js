@@ -47,36 +47,30 @@ class MultiStepForm {
           );
         }
       });
+
+      // The browser blocks the submit when a field breaks its own rules (pattern,
+      // email format...), but it cannot point at a field on a hidden step, so the
+      // click silently did nothing. Open that field's step and show the error.
+      let revealing = false;
+      form.addEventListener("invalid", (e) => {
+        const step = e.target.closest(".form-step");
+        if (revealing || !step || step.classList.contains("active")) return;
+        revealing = true;
+        setTimeout(() => { revealing = false; }, 0);
+
+        this.syncCurrentStepWithPage();
+        this.goToStep(parseInt(step.dataset.step));
+        this.validateCurrentStep();
+      }, true);
     }
   }
 
+  syncCurrentStepWithPage() {
+    const active = document.querySelector(".form-step.active");
+    if (active) this.currentStep = parseInt(active.dataset.step);
+  }
+
   setupRealTimeValidation() {
-    // Real-time ID number existence check
-    const idInput = document.querySelector('input[name="id_number"]');
-    if (idInput) {
-      let idTimeout;
-      idInput.addEventListener("input", (e) => {
-        clearTimeout(idTimeout);
-
-        // Format ID in real-time
-        this.formatID(idInput);
-
-        idTimeout = setTimeout(() => {
-          if (idInput.value.length === 9) {
-            // xxxx-xxxx format
-            this.checkIDRealTime(idInput.value);
-          } else {
-            // Clear feedback if not complete format
-            const feedback = idInput.parentNode.querySelector("#id-feedback");
-            if (feedback) {
-              feedback.innerHTML = "";
-              feedback.style.display = "none";
-            }
-          }
-        }, 800); // Wait 800ms after user stops typing
-      });
-    }
-
     // Username checking
     const usernameInput = document.querySelector('input[name="username"]');
     if (usernameInput) {
@@ -167,64 +161,6 @@ class MultiStepForm {
       });
   }
 
-  checkIDRealTime(idNumber) {
-    const input = document.querySelector('input[name="id_number"]');
-    if (!input) return;
-
-    console.log("Checking ID:", idNumber);
-
-    // Create or find feedback element
-    let feedback = input.parentNode.querySelector("#id-feedback");
-    if (!feedback) {
-      feedback = document.createElement("div");
-      feedback.id = "id-feedback";
-      feedback.className = "feedback";
-      input.parentNode.appendChild(feedback);
-    }
-
-    // Show loading state
-    feedback.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> Checking ID...';
-    feedback.className = "feedback warning";
-    feedback.style.display = "block";
-
-    // Make the AJAX call
-    fetch("check_id.php", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: "id_number=" + encodeURIComponent(idNumber),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok: " + response.status);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("ID check response:", data);
-
-        if (data.available) {
-          feedback.innerHTML =
-            '<i class="fas fa-check-circle"></i> ID available';
-          feedback.className = "feedback success";
-          this.showFieldSuccess(input);
-        } else {
-          feedback.innerHTML =
-            '<i class="fas fa-times-circle"></i> ID already exists in database';
-          feedback.className = "feedback error";
-          this.showFieldError(input, "ID number already exists in database");
-        }
-      })
-      .catch((error) => {
-        console.error("Error checking ID:", error);
-        // On error, just hide the feedback - don't show error message
-        feedback.innerHTML = "";
-        feedback.style.display = "none";
-      });
-  }
-
   checkUsernameRealTime(username) {
     const feedback = document.getElementById("username-feedback");
     const usernameInputEl = document.querySelector('input[name="username"]');
@@ -292,14 +228,6 @@ class MultiStepForm {
     // Only trim leading spaces; keep internal multiple spaces for validation.
     let value = input.value;
     value = value.replace(/^\s+/, '');
-    input.value = value;
-  }
-
-  formatID(input) {
-    let value = input.value.replace(/\D/g, "");
-    if (value.length > 4) {
-      value = value.substring(0, 4) + "-" + value.substring(4, 8);
-    }
     input.value = value;
   }
 
@@ -543,6 +471,12 @@ class MultiStepForm {
       }
     }
 
+    // Rules the browser enforces on submit (pattern, type="email", passwords match).
+    // Checked here too so a step can't be left with a field that blocks the submit.
+    if (errors.length === 0 && !input.validity.valid) {
+      errors.push(input.validity.patternMismatch && input.title ? input.title : input.validationMessage);
+    }
+
     // Return all collected errors so multiple issues can be shown at once
     return {
       isValid: errors.length === 0,
@@ -676,7 +610,6 @@ class MultiStepForm {
       last_name: "Last Name",
       middle_name: "Middle Name",
       extension_name: "Extension Name",
-      id_number: "ID Number",
       birthdate: "Birthdate",
       email: "Email Address",
       sex: "Sex",
@@ -838,17 +771,22 @@ class MultiStepForm {
   }
 
   validateAllSteps() {
-    let allValid = true;
+    this.syncCurrentStepWithPage();
+    const shownStep = this.currentStep;
 
     for (let step = 1; step <= this.totalSteps; step++) {
       this.currentStep = step;
       if (!this.validateCurrentStep()) {
-        allValid = false;
-        break;
+        // Open the step with the problem, otherwise its errors stay hidden
+        this.currentStep = shownStep;
+        this.goToStep(step);
+        this.validateCurrentStep();
+        return false;
       }
     }
 
-    return allValid;
+    this.currentStep = shownStep;
+    return true;
   }
 
   goToStep(step) {
@@ -900,59 +838,63 @@ class MultiStepForm {
   }
 }
 
+// One shared instance. Creating a new MultiStepForm on every blur re-attached all
+// listeners and left stale copies on step 1, which let "Next" skip step 2 checks.
+let multiStepForm = null;
+function getMultiStepForm() {
+  if (!multiStepForm) multiStepForm = new MultiStepForm();
+  return multiStepForm;
+}
+
 // Global functions for HTML inline event handlers
-window.formatID = function (input) {
-  const form = new MultiStepForm();
-  form.formatID(input);
-};
 
 window.validateName = function (input, fieldName) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSingleField(input);
 };
 
 window.validateExtension = function (input) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSingleField(input);
 };
 
 window.validateEmail = function (input) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSingleField(input);
 };
 
 window.validateAddress = function (input, fieldName) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSingleField(input);
 };
 
 window.validateZipCode = function (input) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSingleField(input);
 };
 
 window.validatePasswordStrength = function () {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validatePasswordStrength();
 };
 
 window.validatePasswordMatch = function () {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validatePasswordMatch();
 };
 
 window.validateSecurityAnswerMatch = function (questionNumber) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.validateSecurityAnswerMatch(questionNumber);
 };
 
 window.checkUsername = function (username) {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.checkUsernameRealTime(username);
 };
 
 window.calculateAge = function () {
-  const form = new MultiStepForm();
+  const form = getMultiStepForm();
   form.calculateAge();
 };
 
@@ -966,7 +908,7 @@ window.toggleExtensionOther = function (selectEl) {
   if (show) {
     input.setAttribute("required", "required");
     input.addEventListener("input", () => {
-      const form = new MultiStepForm();
+      const form = getMultiStepForm();
       form.validateSingleField(input);
     }, { once: true });
   } else {
@@ -993,5 +935,5 @@ window.togglePassword = function (fieldId) {
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-  new MultiStepForm();
+  getMultiStepForm();
 });
