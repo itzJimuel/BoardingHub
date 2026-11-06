@@ -78,12 +78,33 @@ switch ($action) {
             exit();
         }
 
+        // The active Super Admin stepping down this way would leave nobody in charge
+        if ($isSuperAdmin && $targetUserId === $currentUser['id_number'] && $newStatus !== 'approved') {
+            echo json_encode(['success' => false, 'message' => "You can't deactivate your own account while you're the active Super Admin. To step down, hand over access to the standby Super Admin."]);
+            exit();
+        }
+
         $stmt = $conn->prepare("UPDATE users SET status = ? WHERE id_number = ?");
         $stmt->bind_param("ss", $newStatus, $targetUserId);
         if ($stmt->execute()) {
             ActivityLogger::log('UPDATE_STATUS', "Changed status of user '{$targetUserId}' ({$targetRole}) to '{$newStatus}'.", 'User Management');
             $msg = ($newStatus === 'approved') ? 'Account approved / unblocked successfully' : ($newStatus === 'blocked' ? 'Account has been blocked' : 'Account status set to pending');
-            echo json_encode(['success' => true, 'message' => $msg]);
+
+            // Only one Super Admin may be active at a time: reactivating the standby
+            // Super Admin hands over access, same as promoting one from the edit form.
+            $selfDemoted = false;
+            if ($targetRole === 'superadmin' && $newStatus === 'approved' && $targetUserId !== $currentUser['id_number']) {
+                $demoteStmt = $conn->prepare("UPDATE users SET status = 'blocked' WHERE id_number = ?");
+                $demoteStmt->bind_param("s", $currentUser['id_number']);
+                if ($demoteStmt->execute()) {
+                    $selfDemoted = true;
+                    ActivityLogger::log('UPDATE_STATUS', "Handed over Super Admin access to user '{$targetUserId}'; own account @{$currentUser['username']} is now on standby.", 'User Management');
+                }
+                $demoteStmt->close();
+                $msg = 'Super Admin access handed over. Your account is now on standby and you will be signed out.';
+            }
+
+            echo json_encode(['success' => true, 'message' => $msg, 'self_demoted' => $selfDemoted]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Database update failed: ' . $conn->error]);
         }
@@ -115,6 +136,11 @@ switch ($action) {
 
         if (!in_array($role, ['superadmin', 'admin', 'user'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid role specified']);
+            exit();
+        }
+
+        if ($role === 'superadmin' && Auth::countSuperAdminAccounts() >= MAX_SUPER_ADMINS) {
+            echo json_encode(['success' => false, 'message' => 'There are already ' . MAX_SUPER_ADMINS . ' Super Admin accounts, which is the limit. To add a new one, change the standby Super Admin\'s role or delete that account first.']);
             exit();
         }
 
@@ -247,7 +273,7 @@ switch ($action) {
                     ActivityLogger::log('UPDATE_STATUS', "Deactivated own Super Admin account @{$currentUser['username']} after creating new Super Admin @{$username}.", 'User Management');
                 }
                 $demoteStmt->close();
-                $message .= " Your Super Admin account has been deactivated — only one Super Admin may be active at a time. You will be logged out.";
+                $message .= " Your Super Admin account is now on standby — only one Super Admin may be active at a time. You will be logged out.";
             }
 
             echo json_encode(['success' => true, 'message' => $message, 'id_number' => $id_number, 'temp_password' => $emailDispatched ? null : $tempPassword, 'self_demoted' => $selfDemoted]);
@@ -295,6 +321,18 @@ switch ($action) {
 
         if ($targetRole === 'superadmin' && !$isSuperAdmin) {
             echo json_encode(['success' => false, 'message' => 'Only Super Admin can update Super Admin details']);
+            exit();
+        }
+
+        // The active Super Admin can't demote or deactivate themselves; that would leave nobody in charge
+        $changesOwnAccess = (!empty($newRole) && $newRole !== 'superadmin') || (!empty($newStatus) && $newStatus !== 'approved');
+        if ($isSuperAdmin && $targetUserId === $currentUser['id_number'] && $changesOwnAccess) {
+            echo json_encode(['success' => false, 'message' => "You can't change your own role or status while you're the active Super Admin. To step down, hand over access to the standby Super Admin."]);
+            exit();
+        }
+
+        if ($isSuperAdmin && $newRole === 'superadmin' && $targetRole !== 'superadmin' && Auth::countSuperAdminAccounts() >= MAX_SUPER_ADMINS) {
+            echo json_encode(['success' => false, 'message' => 'There are already ' . MAX_SUPER_ADMINS . ' Super Admin accounts, which is the limit. Change the standby Super Admin\'s role or delete that account before promoting someone else.']);
             exit();
         }
 
@@ -509,6 +547,12 @@ switch ($action) {
         }
         $targetUserId = $res->fetch_assoc()['target_user_id'];
         $stmt->close();
+
+        // An Admin can request deletion of any account, including the active Super Admin's
+        if ($decision === 'approve' && $targetUserId === $currentUser['id_number']) {
+            echo json_encode(['success' => false, 'message' => "You can't approve the deletion of your own account. Reject this request, or hand over Super Admin access first."]);
+            exit();
+        }
 
         $reviewerId = $currentUser['id_number'];
 

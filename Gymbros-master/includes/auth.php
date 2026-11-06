@@ -259,6 +259,16 @@ class Auth
     return [];
   }
 
+  // Active and standby (blocked) Super Admins both count toward MAX_SUPER_ADMINS
+  public static function countSuperAdminAccounts()
+  {
+    $db = new Database();
+    $conn = $db->getConnection();
+
+    $result = $conn->query("SELECT COUNT(*) AS total FROM users WHERE role = 'superadmin'");
+    return $result ? (int)$result->fetch_assoc()['total'] : 0;
+  }
+
   public static function getUserByUsername($username)
   {
     $db = new Database();

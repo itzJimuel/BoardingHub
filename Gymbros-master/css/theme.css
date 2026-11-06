@@ -224,7 +224,7 @@ body > header:not(.admin-topbar) {
 .btn-card-details, .btn-card-reserve { border-radius: 10px; padding: 11px 14px; }
 
 /* Room types / features / testimonials / faq */
-.room-type-card, .feature-card, .testimonial-card, .faq-item, .gallery-content {
+.room-type-card, .feature-card, .testimonial-card, .gallery-content {
   background: var(--bh-surface);
   border-color: var(--bh-border);
   box-shadow: var(--bh-shadow);
@@ -232,12 +232,7 @@ body > header:not(.admin-topbar) {
 .room-type-card.featured-type { border: 1px solid rgba(59, 130, 246, 0.6); box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 24px 48px -20px rgba(37, 99, 235, 0.5); }
 .feature-icon { border-radius: 14px; background: var(--bh-primary-soft); border-color: rgba(59, 130, 246, 0.28); }
 .feature-card:hover, .testimonial-card:hover { border-color: rgba(59, 130, 246, 0.4); }
-.faq-item { transition: border-color 0.2s var(--bh-ease); }
-.faq-item:hover { border-color: rgba(59, 130, 246, 0.35); }
 .room-types-section { background: linear-gradient(180deg, transparent, rgba(6, 10, 22, 0.55) 15%, rgba(6, 10, 22, 0.55) 85%, transparent); }
-
-/* Public modals */
-.modal-backdrop .modal-card { background: var(--bh-surface-solid); border-color: var(--bh-border-strong); border-radius: 20px; }
 
 /* Footer */
 body > footer:not(.admin-footer) { background: rgba(5, 8, 18, 0.92); border-top: 1px solid var(--bh-border); }
@@ -356,6 +351,7 @@ body > footer:not(.admin-footer) { background: rgba(5, 8, 18, 0.92); border-top:
 .status-approved { background: var(--bh-success-soft); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
 .status-pending { background: var(--bh-warn-soft); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
 .status-blocked { background: var(--bh-danger-soft); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+.status-standby { background: var(--bh-violet-soft); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.35); }
 
 /* Row action buttons */
 .table-actions-cell { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
@@ -394,6 +390,190 @@ body > footer:not(.admin-footer) { background: rgba(5, 8, 18, 0.92); border-top:
 .btn-icon.btn-privileges:hover { background: var(--bh-violet); color: #fff; }
 .btn-icon.btn-info { background: rgba(14, 165, 233, 0.14); border-color: rgba(14, 165, 233, 0.35); color: #7dd3fc; }
 .btn-icon.btn-info:hover { background: #0284c7; color: #fff; }
+
+/* ==========================================================================
+   DIALOGS (native <dialog>, shared by the home page and admin console)
+   ========================================================================== */
+.bh-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-width: none;
+  max-height: min(88dvh, 720px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--bh-border-strong);
+  border-radius: 22px;
+  background: var(--bh-surface-solid);
+  color: var(--bh-text);
+  box-shadow: 0 40px 80px -24px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+  color-scheme: dark;
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: var(--bh-ease);
+  transition-behavior: allow-discrete;
+}
+.bh-dialog[open] { opacity: 1; transform: none; }
+@starting-style {
+  .bh-dialog[open] { opacity: 0; transform: translateY(16px) scale(0.98); }
+}
+/* Keep scrolling inside the dialog from scrolling the page behind it */
+.bh-dialog:modal { overscroll-behavior: contain; }
+.bh-dialog::backdrop {
+  background-color: rgb(2 6 18 / 0);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  transition-property: background-color, backdrop-filter, display, overlay;
+  transition-duration: 0.25s;
+  transition-behavior: allow-discrete;
+}
+.bh-dialog[open]::backdrop { background-color: rgb(2 6 18 / 0.75); backdrop-filter: blur(8px); }
+@starting-style {
+  .bh-dialog[open]::backdrop { background-color: rgb(2 6 18 / 0); backdrop-filter: blur(0); }
+}
+
+.bh-dialog-close-form { position: absolute; top: 14px; right: 14px; z-index: 5; margin: 0; }
+.bh-dialog-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(6, 10, 22, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s var(--bh-ease);
+}
+.bh-dialog-close:hover { background: rgba(255, 255, 255, 0.14); }
+
+.btn-dialog-primary,
+.btn-dialog-secondary,
+.btn-dialog-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.18s var(--bh-ease), box-shadow 0.18s var(--bh-ease), background 0.18s var(--bh-ease), color 0.18s var(--bh-ease);
+}
+.btn-dialog-primary {
+  flex: 1;
+  border: 0;
+  background: var(--bh-grad);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px -10px rgba(37, 99, 235, 0.9);
+}
+.btn-dialog-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(37, 99, 235, 1); }
+.btn-dialog-primary:disabled { opacity: 0.75; cursor: wait; transform: none; }
+.btn-dialog-secondary {
+  border: 1px solid var(--bh-border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--bh-text-2);
+  font-weight: 600;
+}
+.btn-dialog-secondary:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
+
+.btn-dialog-danger {
+  border: 0;
+  background: var(--bh-danger);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px -10px rgba(239, 68, 68, 0.8);
+}
+.btn-dialog-danger:hover { background: #dc2626; transform: translateY(-1px); }
+
+/* Alert / confirm dialog (replaces window.alert and window.confirm) */
+.bh-alert { width: min(480px, calc(100% - 32px)); }
+.bh-alert[open] { display: flex; flex-direction: column; overflow-y: auto; }
+.bh-alert-body { padding: 28px 28px 24px; }
+.bh-alert-icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  border: 1px solid transparent;
+}
+.bh-alert-icon.is-success { background: var(--bh-success-soft); border-color: rgba(16, 185, 129, 0.35); color: #34d399; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.06); }
+.bh-alert-icon.is-warning { background: var(--bh-warn-soft); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24; box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.06); }
+.bh-alert-icon.is-danger { background: var(--bh-danger-soft); border-color: rgba(239, 68, 68, 0.35); color: #f87171; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.06); }
+.bh-alert-icon.is-info { background: var(--bh-primary-soft); border-color: rgba(59, 130, 246, 0.35); color: #60a5fa; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.06); }
+.bh-alert-title { margin-bottom: 6px; font-family: var(--bh-display); font-size: 21px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; color: #fff; }
+.bh-alert-message { font-size: 14px; line-height: 1.6; color: var(--bh-muted); }
+.bh-alert-message strong { color: var(--bh-text-2); font-weight: 600; }
+
+.bh-copy-field {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(37, 99, 235, 0.08);
+}
+.bh-copy-field-label { display: block; margin-bottom: 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--bh-dim); }
+.bh-copy-field-value { font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace; font-size: 22px; font-weight: 700; letter-spacing: 0.02em; color: #fff; overflow-wrap: anywhere; }
+.bh-copy-field.is-secret { margin-top: 12px; border-color: rgba(245, 158, 11, 0.35); background: rgba(2, 6, 23, 0.45); }
+.bh-copy-field.is-secret .bh-copy-field-value { font-size: 18px; color: #fde68a; }
+.bh-copy-btn {
+  height: 34px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  border: 1px solid var(--bh-border-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--bh-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s var(--bh-ease), color 0.18s var(--bh-ease), border-color 0.18s var(--bh-ease);
+}
+.bh-copy-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.bh-copy-btn.is-copied { color: #34d399; border-color: rgba(16, 185, 129, 0.45); background: var(--bh-success-soft); }
+
+.bh-alert-details { margin-top: 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px 18px; font-size: 13.5px; }
+.bh-alert-details dt { font-weight: 600; color: var(--bh-dim); }
+.bh-alert-details dd { margin: 0; color: var(--bh-text-2); overflow-wrap: anywhere; }
+
+.bh-alert-note { margin-top: 18px; display: flex; gap: 11px; padding: 12px 14px; border-radius: 12px; border: 1px solid transparent; font-size: 13px; line-height: 1.55; }
+.bh-alert-note > i { margin-top: 3px; flex-shrink: 0; }
+.bh-alert-note strong { display: block; margin-bottom: 2px; color: #fff; font-size: 13.5px; }
+.bh-alert-note.is-info { background: var(--bh-primary-soft); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe; }
+.bh-alert-note.is-info > i { color: #60a5fa; }
+.bh-alert-note.is-warning { background: var(--bh-warn-soft); border-color: rgba(245, 158, 11, 0.35); color: #fde68a; }
+.bh-alert-note.is-warning > i { color: #fbbf24; }
+.bh-alert-note.is-danger { background: var(--bh-danger-soft); border-color: rgba(239, 68, 68, 0.35); color: #fecaca; }
+.bh-alert-note.is-danger > i { color: #f87171; }
+
+/* Pinned so the buttons stay reachable when a long alert scrolls on small screens */
+.bh-alert-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 16px 28px 22px; border-top: 1px solid var(--bh-border); background: #0b1229; }
+.bh-alert-actions > * { flex: 1; }
+
+@media (max-width: 480px) {
+  .bh-alert-body { padding: 24px 20px 20px; }
+  .bh-alert-actions { flex-direction: column-reverse; padding: 14px 20px 18px; }
+  .bh-copy-field-value { font-size: 19px; }
+}
 
 /* ==========================================================================
    ADMIN CONSOLE

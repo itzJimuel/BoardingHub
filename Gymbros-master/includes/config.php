@@ -12,6 +12,7 @@ define('DB_USER', 'root'); // Change if different
 define('DB_PASS', ''); // Change if you have a password
 define('DB_NAME', 'gym_Bros');
 define('MAX_LOGIN_ATTEMPTS', 3);
+define('MAX_SUPER_ADMINS', 2); // Super Admin accounts allowed in total: one active, the rest on standby
 define('LOCKOUT_TIMES', [15, 30, 60]);
 
 // SMTP & Email Configuration
@@ -21,7 +22,7 @@ define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
 define('SMTP_SECURE', 'tls'); // 'tls' (port 587) or 'ssl' (port 465)
 define('SMTP_USER', 'jervecute123@gmail.com'); // Enter your sender email (e.g., your-email@gmail.com)
-define('SMTP_PASS', 'cgbn jrry fdfs hqtb'); // Enter your SMTP / Google App Password
+define('SMTP_PASS', ''); // Your 16-character Google App Password. Keep the real value out of git.
 define('SMTP_FROM_EMAIL', 'jervecute123@gmail.com');
 define('SMTP_FROM_NAME', 'BoardingHub Security');
 
@@ -315,8 +316,10 @@ class Database
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
     }
 
-    // Ensure default Super Admin exists
-    $result = $this->connection->query("SELECT id_number FROM `users` WHERE `username` = 'superadmin'");
+    // Seed the default Super Admin only on a fresh install. Checking the role (not the
+    // 'superadmin' username) lets the account be renamed without the default login,
+    // and its well-known password, being re-created on the next request.
+    $result = $this->connection->query("SELECT id_number FROM `users` WHERE `role` = 'superadmin' OR `id_number` = 'SA-2025-001' LIMIT 1");
     if ($result && $result->num_rows === 0) {
       $passHash = password_hash('SuperAdmin123!', PASSWORD_DEFAULT);
       $privs = json_encode([

@@ -24,8 +24,14 @@ setTimeout(hidePageLoader, 800);
     // Animate stats counter
     function animateStats() {
       const stats = document.querySelectorAll('.stat-number');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       stats.forEach(stat => {
         const target = parseInt(stat.getAttribute('data-count'));
+        if (isNaN(target)) return;
+        if (reduceMotion) {
+          stat.textContent = target.toLocaleString('en-US');
+          return;
+        }
         const duration = 2000; // 2 seconds
         const step = target / (duration / 16); // 60fps
         let current = 0;
@@ -36,7 +42,7 @@ setTimeout(hidePageLoader, 800);
             current = target;
             clearInterval(timer);
           }
-          stat.textContent = Math.floor(current);
+          stat.textContent = Math.floor(current).toLocaleString('en-US');
         }, 16);
       });
     }
@@ -62,8 +68,26 @@ setTimeout(hidePageLoader, 800);
     const navBar = document.querySelector('.navBar');
 
     if (mobileMenuBtn) {
+      const setMenuOpen = (open) => {
+        mobileMenuBtn.classList.toggle('active', open);
+        navBar.classList.toggle('active', open);
+        mobileMenuBtn.setAttribute('aria-expanded', open);
+        mobileMenuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      };
+
       mobileMenuBtn.addEventListener('click', () => {
-        mobileMenuBtn.classList.toggle('active');
-        navBar.classList.toggle('active');
+        setMenuOpen(!navBar.classList.contains('active'));
+      });
+
+      // Close after picking a link (same-page anchors would otherwise leave it covering the page)
+      navBar.addEventListener('click', (e) => {
+        if (e.target.closest('a')) setMenuOpen(false);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && navBar.classList.contains('active')) {
+          setMenuOpen(false);
+          mobileMenuBtn.focus();
+        }
       });
     }

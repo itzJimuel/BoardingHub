@@ -46,6 +46,123 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
+// Styled replacement for alert()/confirm(). Resolves with the value of the button
+// that closed the dialog, or '' when it was dismissed with Esc.
+function showAdminDialog({ tone = 'info', icon = 'fa-circle-info', title, message, content = [], actions, dismissible = true }) {
+    const dialog = document.createElement('dialog');
+    const titleId = 'bh-alert-title-' + Date.now();
+    dialog.className = 'bh-dialog bh-alert';
+    dialog.setAttribute('aria-labelledby', titleId);
+
+    const body = document.createElement('div');
+    body.className = 'bh-alert-body';
+
+    const iconBox = document.createElement('div');
+    iconBox.className = `bh-alert-icon is-${tone}`;
+    iconBox.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i>`;
+
+    const heading = document.createElement('h2');
+    heading.id = titleId;
+    heading.className = 'bh-alert-title';
+    heading.textContent = title;
+    body.append(iconBox, heading);
+
+    if (message) {
+        const text = document.createElement('p');
+        text.className = 'bh-alert-message';
+        text.textContent = message;
+        body.append(text);
+    }
+    body.append(...content);
+
+    const buttons = document.createElement('form');
+    buttons.method = 'dialog';
+    buttons.className = 'bh-alert-actions';
+    (actions || [{ label: 'OK', value: 'ok', variant: 'primary', autofocus: true }]).forEach(action => {
+        const btn = document.createElement('button');
+        btn.value = action.value;
+        btn.className = `btn-dialog-${action.variant || 'secondary'}`;
+        btn.autofocus = Boolean(action.autofocus);
+        if (action.icon) btn.innerHTML = `<i class="fas ${action.icon}" aria-hidden="true"></i> `;
+        btn.append(action.label);
+        buttons.append(btn);
+    });
+
+    dialog.append(body, buttons);
+    if (!dismissible) dialog.addEventListener('cancel', (e) => e.preventDefault());
+    document.body.append(dialog);
+    dialog.showModal();
+    dialog.scrollTop = 0; // focusing a bottom button must not hide the title on short screens
+
+    return new Promise(resolve => {
+        dialog.addEventListener('close', () => {
+            resolve(dialog.returnValue);
+            setTimeout(() => dialog.remove(), 300); // let the exit transition finish
+        }, { once: true });
+    });
+}
+
+function createAlertNote(tone, icon, heading, text) {
+    const note = document.createElement('div');
+    note.className = `bh-alert-note is-${tone}`;
+    note.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i>`;
+
+    const copy = document.createElement('div');
+    if (heading) {
+        const strong = document.createElement('strong');
+        strong.textContent = heading;
+        copy.append(strong);
+    }
+    copy.append(text);
+    note.append(copy);
+    return note;
+}
+
+function createCopyField(label, value, variant = '') {
+    const field = document.createElement('div');
+    field.className = 'bh-copy-field' + (variant ? ` is-${variant}` : '');
+
+    const text = document.createElement('div');
+    const labelEl = document.createElement('span');
+    labelEl.className = 'bh-copy-field-label';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.className = 'bh-copy-field-value';
+    valueEl.textContent = value;
+    text.append(labelEl, valueEl);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bh-copy-btn';
+    btn.setAttribute('aria-label', `Copy ${label.toLowerCase()}`);
+    btn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i> <span>Copy</span>';
+    btn.addEventListener('click', () => copyFieldValue(btn, valueEl));
+
+    field.append(text, btn);
+    return field;
+}
+
+async function copyFieldValue(button, valueEl) {
+    const icon = button.querySelector('i');
+    const label = button.querySelector('span');
+    try {
+        await navigator.clipboard.writeText(valueEl.textContent);
+        icon.className = 'fas fa-check';
+        label.textContent = 'Copied';
+        button.classList.add('is-copied');
+    } catch (err) {
+        // The Clipboard API needs HTTPS or localhost; select the text so it can be copied by hand
+        window.getSelection().selectAllChildren(valueEl);
+        label.textContent = 'Press Ctrl+C';
+    }
+    clearTimeout(button.resetTimer);
+    button.resetTimer = setTimeout(() => {
+        icon.className = 'fas fa-copy';
+        label.textContent = 'Copy';
+        button.classList.remove('is-copied');
+    }, 2000);
+}
+
 function escapeHtml(text) {
     if (!text) return '';
     return String(text).replace(/[&<>"']/g, (m) => ({
@@ -222,7 +339,11 @@ function updateUserStatus(userId, status) {
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
-            setTimeout(() => window.location.reload(), 800);
+            if (data.self_demoted) {
+                setTimeout(() => { window.location.href = 'logout.php'; }, 1800);
+            } else {
+                setTimeout(() => window.location.reload(), 800);
+            }
         } else {
             showToast(data.message, 'error');
         }
@@ -230,6 +351,21 @@ function updateUserStatus(userId, status) {
     .catch(err => {
         showToast('Network request failed: ' + err, 'error');
     });
+}
+
+// Reactivating the standby Super Admin makes them the active one and puts you on standby
+async function handOverSuperAdmin(userId, username) {
+    const choice = await showAdminDialog({
+        tone: 'warning',
+        icon: 'fa-right-left',
+        title: 'Hand over Super Admin access?',
+        message: `@${username} will become the active Super Admin. Your account will go on standby and you'll be signed out. Only one Super Admin can be active at a time, so @${username} can hand access back to you later.`,
+        actions: [
+            { label: 'Cancel', value: 'cancel', variant: 'secondary', autofocus: true },
+            { label: 'Hand over and sign out', value: 'confirm', variant: 'danger' }
+        ]
+    });
+    if (choice === 'confirm') updateUserStatus(userId, 'approved');
 }
 
 // Edit User Info Modal Loader & Handler
@@ -268,6 +404,22 @@ function openEditUserModal(userId) {
             const statusSelect = document.getElementById('edit-status');
             if (statusSelect) statusSelect.value = u.status;
 
+            // The role field only exists for Super Admins, who can't demote or deactivate themselves
+            const currentUserIdEl = document.getElementById('current-user-id');
+            const isOwnSuperAdminAccount = roleSelect && currentUserIdEl && u.id_number === currentUserIdEl.value;
+            [roleSelect, statusSelect].forEach(select => {
+                if (!select) return;
+                select.disabled = Boolean(isOwnSuperAdminAccount);
+                select.title = isOwnSuperAdminAccount ? 'To step down, hand over access to the standby Super Admin' : '';
+            });
+
+            if (roleSelect) {
+                const limitReached = document.getElementById('super-admin-limit-reached')?.value === '1';
+                const superAdminOption = roleSelect.querySelector('option[value="superadmin"]');
+                superAdminOption.disabled = limitReached && u.role !== 'superadmin';
+                superAdminOption.textContent = superAdminOption.disabled ? 'Super Administrator (limit reached)' : 'Super Administrator';
+            }
+
             openModal('modal-edit-user');
         } else {
             showToast(data.message || 'Failed to load user details', 'error');
@@ -275,7 +427,7 @@ function openEditUserModal(userId) {
     });
 }
 
-function submitEditUserForm(e) {
+async function submitEditUserForm(e) {
     e.preventDefault();
 
     const editingId = document.getElementById('edit-id-number').value;
@@ -287,12 +439,18 @@ function submitEditUserForm(e) {
         currentUserIdEl && editingId !== currentUserIdEl.value;
 
     if (promotingToActiveSuperadmin) {
-        const confirmed = confirm(
-            'Only one Super Admin can be active at a time.\n\n' +
-            'Making this account an active Super Admin will immediately deactivate YOUR account and log you out.\n\n' +
-            'Continue?'
-        );
-        if (!confirmed) return;
+        const username = document.getElementById('edit-username').value;
+        const choice = await showAdminDialog({
+            tone: 'warning',
+            icon: 'fa-right-left',
+            title: 'Hand over Super Admin access?',
+            message: `@${username} will become the active Super Admin. Your account will go on standby and you'll be signed out. Only one Super Admin can be active at a time, so @${username} can hand access back to you later.`,
+            actions: [
+                { label: 'Cancel', value: 'cancel', variant: 'secondary', autofocus: true },
+                { label: 'Hand over and sign out', value: 'confirm', variant: 'danger' }
+            ]
+        });
+        if (choice !== 'confirm') return;
     }
 
     const csrfToken = document.getElementById('csrf_token_val').value;
@@ -315,8 +473,8 @@ function submitEditUserForm(e) {
         zip_code: document.getElementById('edit-zip').value
     };
 
-    if (roleSelect) payload.role = roleSelect.value;
-    if (statusSelect) payload.status = statusSelect.value;
+    if (roleSelect && !roleSelect.disabled) payload.role = roleSelect.value;
+    if (statusSelect && !statusSelect.disabled) payload.status = statusSelect.value;
 
     fetch(getAdminApiUrl(), {
         method: 'POST',
@@ -1067,8 +1225,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+function showAccountCreatedDialog(account, result) {
+    const fullName = [account.first_name, account.middle_name, account.last_name, account.extension_name]
+        .map(part => (part || '').trim())
+        .filter(Boolean)
+        .join(' ');
+
+    const details = document.createElement('dl');
+    details.className = 'bh-alert-details';
+    [['Username', '@' + account.username], ['Email', account.email], ['Role', account.role_label]].forEach(([term, value]) => {
+        const dt = document.createElement('dt');
+        dt.textContent = term;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        details.append(dt, dd);
+    });
+
+    const content = [createCopyField('Account ID', result.id_number), details];
+    if (result.temp_password) {
+        content.push(
+            createAlertNote('warning', 'fa-triangle-exclamation', 'The welcome email could not be sent',
+                "Share this temporary password with the user yourself. It won't be shown again."),
+            createCopyField('Temporary password', result.temp_password, 'secret')
+        );
+    } else {
+        content.push(createAlertNote('info', 'fa-envelope', null,
+            "A temporary password is being emailed to them. They'll choose their own password the first time they sign in."));
+    }
+    if (result.self_demoted) {
+        content.push(createAlertNote('danger', 'fa-user-lock', 'You will be signed out',
+            'Only one Super Admin can be active at a time, so your account is now on standby. The new Super Admin can hand access back to you.'));
+    }
+
+    const actions = result.self_demoted
+        ? [{ label: 'Sign out', value: 'logout', variant: 'primary', icon: 'fa-right-from-bracket', autofocus: true }]
+        : [
+            { label: 'View accounts', value: 'accounts', variant: 'secondary' },
+            { label: 'Create another', value: 'another', variant: 'primary', icon: 'fa-user-plus', autofocus: true }
+        ];
+
+    return showAdminDialog({
+        tone: 'success',
+        icon: 'fa-circle-check',
+        title: 'Account created',
+        message: `${fullName || account.username}'s account is ready.`,
+        content,
+        actions,
+        // A one-time password must not vanish on a stray Esc press
+        dismissible: !result.temp_password && !result.self_demoted
+    });
+}
+
 // Super Admin Create Account Form Submit
-function submitCreateAccountForm(e) {
+async function submitCreateAccountForm(e) {
     e.preventDefault();
 
     const invalidIds = Object.keys(CREATE_ACCOUNT_RULES).filter(id => !validateCreateField(id));
@@ -1078,15 +1287,20 @@ function submitCreateAccountForm(e) {
         return;
     }
 
-    const selectedRole = document.getElementById('create-role').value;
-    if (selectedRole === 'superadmin') {
-        const confirmed = confirm(
-            'Only one Super Admin can be active at a time.\n\n' +
-            'Creating this new Super Admin account will immediately deactivate YOUR account and log you out. ' +
-            'The new Super Admin can reactivate you (or change your role) afterward.\n\n' +
-            'Continue?'
-        );
-        if (!confirmed) return;
+    const roleSelect = document.getElementById('create-role');
+    if (roleSelect.value === 'superadmin') {
+        const newUsername = document.getElementById('create-username').value.trim();
+        const choice = await showAdminDialog({
+            tone: 'warning',
+            icon: 'fa-user-shield',
+            title: 'Create a new Super Admin?',
+            message: `@${newUsername} will become the active Super Admin. Your account will go on standby and you'll be signed out. Only one Super Admin can be active at a time, so @${newUsername} can hand access back to you later.`,
+            actions: [
+                { label: 'Cancel', value: 'cancel', variant: 'secondary', autofocus: true },
+                { label: 'Create and sign out', value: 'confirm', variant: 'danger' }
+            ]
+        });
+        if (choice !== 'confirm') return;
     }
 
     const csrfToken = document.getElementById('csrf_token_val').value;
@@ -1095,7 +1309,7 @@ function submitCreateAccountForm(e) {
         'can_approve_users', 'can_block_users', 'can_update_info', 'can_manage_roles', 'can_create_accounts',
         'can_delete_users', 'can_manage_requests', 'can_give_privileges',
         'can_view_reports', 'can_export_logs',
-        'can_manage_classes', 'can_manage_bookings', 'can_manage_metrics'
+        'can_manage_classes', 'can_manage_bookings'
     ];
 
     const privileges = {};
@@ -1133,20 +1347,18 @@ function submitCreateAccountForm(e) {
         body: JSON.stringify(payload)
     })
     .then(res => res.json())
-    .then(data => {
+    .then(async data => {
         if (data.success) {
-            showToast(data.message, 'success');
-            // The page reloads right after, so the new ID is confirmed in a dialog the admin can read
-            let notice = 'Account created successfully.\n\nEmployee / Account ID: ' + data.id_number;
-            if (data.temp_password) {
-                notice += '\n\nThe welcome email could not be delivered. Please share this temporary password with the user manually:\n\n' + data.temp_password;
-            }
-            alert(notice);
+            const roleLabel = roleSelect.options[roleSelect.selectedIndex].text;
             document.getElementById('form-create-account').reset();
+            // The page reloads afterwards, so the new ID stays on screen until the admin dismisses it
+            const choice = await showAccountCreatedDialog({ ...payload, role_label: roleLabel }, data);
             if (data.self_demoted) {
-                setTimeout(() => { window.location.href = 'logout.php'; }, 1800);
+                window.location.href = 'logout.php';
+            } else if (choice === 'accounts') {
+                window.location.href = 'dashboard.php';
             } else {
-                setTimeout(() => window.location.reload(), 800);
+                window.location.reload();
             }
         } else {
             showToast(data.message, 'error');
