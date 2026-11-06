@@ -191,6 +191,7 @@ $csrfToken = Security::generateCSRFToken();
 <body>
   <input type="hidden" id="csrf_token_val" value="<?php echo $csrfToken; ?>">
   <input type="hidden" id="current-user-id" value="<?php echo htmlspecialchars($user['id_number']); ?>">
+  <input type="hidden" id="super-admin-limit-reached" value="<?php echo $stats['total_superadmins'] >= MAX_SUPER_ADMINS ? '1' : '0'; ?>">
 
   <!-- Loading Animation -->
   <div class="page-loader" id="mainPageLoader">
@@ -495,7 +496,10 @@ $csrfToken = Security::generateCSRFToken();
                   </tr>
                 </thead>
                 <tbody>
-                  <?php foreach ($allUsers as $u): ?>
+                  <?php foreach ($allUsers as $u):
+                    // Only one Super Admin is active at a time; a blocked one is the standby
+                    $isStandbySuperAdmin = $u['role'] === 'superadmin' && $u['status'] === 'blocked';
+                  ?>
                     <tr id="user-row-<?php echo htmlspecialchars($u['id_number']); ?>">
                       <td><code><?php echo htmlspecialchars($u['id_number']); ?></code></td>
                       <td><strong><?php echo htmlspecialchars($u['first_name'] . ' ' . $u['last_name']); ?></strong></td>
@@ -512,6 +516,8 @@ $csrfToken = Security::generateCSRFToken();
                       <td>
                         <?php if ($u['status'] === 'approved'): ?>
                           <span class="status-badge status-approved"><i class="fas fa-check-circle"></i> Active</span>
+                        <?php elseif ($isStandbySuperAdmin): ?>
+                          <span class="status-badge status-standby" title="Can log in once the active Super Admin hands over access"><i class="fas fa-pause-circle"></i> Standby</span>
                         <?php elseif ($u['status'] === 'pending'): ?>
                           <span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span>
                         <?php else: ?>
@@ -531,7 +537,13 @@ $csrfToken = Security::generateCSRFToken();
                             </button>
                           <?php endif; ?>
 
-                          <?php if ($u['status'] === 'blocked'): ?>
+                          <?php if ($isStandbySuperAdmin): ?>
+                            <?php if ($isSuperAdmin): ?>
+                              <button class="action-btn btn-approve" onclick="handOverSuperAdmin('<?php echo $u['id_number']; ?>', '<?php echo htmlspecialchars(addslashes($u['username'])); ?>')" title="Hand over Super Admin access">
+                                <i class="fas fa-right-left"></i>
+                              </button>
+                            <?php endif; ?>
+                          <?php elseif ($u['status'] === 'blocked'): ?>
                             <button class="action-btn btn-approve" onclick="updateUserStatus('<?php echo $u['id_number']; ?>', 'approved')" title="Unblock Account">
                               <i class="fas fa-unlock"></i>
                             </button>

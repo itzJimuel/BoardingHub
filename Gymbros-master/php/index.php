@@ -1,10 +1,12 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/auth.php';
+require_once '../includes/security.php';
 
 $isLoggedIn = Auth::isLoggedIn();
 $isAdmin = Auth::isAdmin();
 $isSuperAdmin = Auth::isSuperAdmin();
+$user = $isLoggedIn ? $_SESSION['user'] : [];
 
 $db = new Database();
 $conn = $db->getConnection();
@@ -165,11 +167,12 @@ if ($res && $res->num_rows > 0) {
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/style.css?v=<?php echo filemtime(__DIR__ . '/../css/style.css'); ?>">
   <link rel="stylesheet" href="../css/theme.css?v=<?php echo filemtime(__DIR__ . '/../css/theme.css'); ?>">
+  <link rel="stylesheet" href="../css/home.css?v=<?php echo filemtime(__DIR__ . '/../css/home.css'); ?>">
 </head>
 
-<body>
+<body data-auth="<?php echo $isLoggedIn ? '1' : '0'; ?>">
   <!-- Loading Animation -->
   <div class="page-loader">
     <div class="loader">
@@ -195,13 +198,13 @@ if ($res && $res->num_rows > 0) {
     </div>
 
     <!-- Mobile Menu Button -->
-    <div class="mobile-menu-btn">
+    <button type="button" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
       <span></span>
       <span></span>
       <span></span>
-    </div>
+    </button>
 
-    <div class="navBar">
+    <nav class="navBar" id="site-nav" aria-label="Main">
       <ul>
         <li><a href="index.php" class="active"><i class="fas fa-home"></i> Home</a></li>
         <li><a href="#browse-section"><i class="fas fa-compass"></i> Explore Houses</a></li>
@@ -217,7 +220,7 @@ if ($res && $res->num_rows > 0) {
           <li><a href="login.php" class="nav-highlight"><i class="fas fa-sign-in-alt"></i> Login</a></li>
         <?php endif; ?>
       </ul>
-    </div>
+    </nav>
   </header>
 
   <main>
@@ -232,22 +235,22 @@ if ($res && $res->num_rows > 0) {
         <p>Discover clean, safe, and student-friendly boarding houses, private rooms, and bedspaces near colleges, universities, and commercial hubs.</p>
         
         <!-- Interactive Search Bar -->
-        <div class="hero-search-container">
+        <form class="hero-search-container" id="hero-search" role="search" action="#browse-section">
           <div class="search-input-group">
-            <i class="fas fa-map-marker-alt"></i>
+            <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
             <div class="input-col">
-              <label>Location / Landmark</label>
-              <input type="text" id="filter-location" placeholder="e.g. Near University, Poblacion, Central...">
+              <label for="filter-location">Location / Landmark</label>
+              <input type="search" id="filter-location" name="location" placeholder="e.g. Poblacion" autocomplete="off" enterkeyhint="search">
             </div>
           </div>
 
           <div class="search-divider"></div>
 
           <div class="search-input-group">
-            <i class="fas fa-door-open"></i>
+            <i class="fas fa-door-open" aria-hidden="true"></i>
             <div class="input-col">
-              <label>Room Category</label>
-              <select id="filter-room-type">
+              <label for="filter-room-type">Room Category</label>
+              <select id="filter-room-type" name="room_type">
                 <option value="">All Room Types</option>
                 <option value="Single Room">Private Single Room</option>
                 <option value="Bedspace">Shared Bedspace / Dorm</option>
@@ -260,54 +263,54 @@ if ($res && $res->num_rows > 0) {
           <div class="search-divider"></div>
 
           <div class="search-input-group">
-            <i class="fas fa-tag"></i>
+            <i class="fas fa-tag" aria-hidden="true"></i>
             <div class="input-col">
-              <label>Monthly Budget</label>
-              <select id="filter-budget">
+              <label for="filter-budget">Monthly Budget</label>
+              <select id="filter-budget" name="budget">
                 <option value="">Any Budget</option>
                 <option value="3000">Up to ₱3,000 / month</option>
                 <option value="4500">Up to ₱4,500 / month</option>
                 <option value="6500">Up to ₱6,500 / month</option>
-                <option value="10000">₱7,000+ / month</option>
+                <option value="7000+">₱7,000+ / month</option>
               </select>
             </div>
           </div>
 
-          <button type="button" class="hero-search-btn" onclick="executeSearch()">
-            <i class="fas fa-search"></i>
+          <button type="submit" class="hero-search-btn">
+            <i class="fas fa-search" aria-hidden="true"></i>
             <span>Search Houses</span>
           </button>
-        </div>
+        </form>
 
         <div class="hero-quick-tags">
           <span>Popular searches:</span>
-          <button type="button" class="quick-pill" onclick="quickFilter('WiFi')"><i class="fas fa-wifi"></i> Fast WiFi</button>
-          <button type="button" class="quick-pill" onclick="quickFilter('Air Conditioning')"><i class="fas fa-snowflake"></i> Aircon</button>
-          <button type="button" class="quick-pill" onclick="quickFilter('Female Only')"><i class="fas fa-female"></i> Female Only</button>
-          <button type="button" class="quick-pill" onclick="quickFilter('Private Bathroom')"><i class="fas fa-bath"></i> Own CR</button>
+          <button type="button" class="quick-pill" data-quick="wifi"><i class="fas fa-wifi" aria-hidden="true"></i> Fast WiFi</button>
+          <button type="button" class="quick-pill" data-quick="aircon"><i class="fas fa-snowflake" aria-hidden="true"></i> Aircon</button>
+          <button type="button" class="quick-pill" data-quick="female"><i class="fas fa-female" aria-hidden="true"></i> Female Only</button>
+          <button type="button" class="quick-pill" data-quick="ownbath"><i class="fas fa-bath" aria-hidden="true"></i> Own CR</button>
         </div>
       </div>
 
       <!-- Hero Stats -->
       <div class="hero-stats">
         <div class="stat">
-          <div class="stat-icon"><i class="fas fa-home"></i></div>
+          <div class="stat-icon"><i class="fas fa-home" aria-hidden="true"></i></div>
           <div class="stat-info">
-            <span class="stat-number" data-count="150">0</span><span class="stat-plus">+</span>
+            <span class="stat-number" data-count="150">150</span><span class="stat-plus">+</span>
             <span class="stat-label">Verified Boarding Houses</span>
           </div>
         </div>
         <div class="stat">
-          <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+          <div class="stat-icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
           <div class="stat-info">
-            <span class="stat-number" data-count="1850">0</span><span class="stat-plus">+</span>
+            <span class="stat-number" data-count="1850">1,850</span><span class="stat-plus">+</span>
             <span class="stat-label">Happy Students & Boarders</span>
           </div>
         </div>
         <div class="stat">
-          <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+          <div class="stat-icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
           <div class="stat-info">
-            <span class="stat-number" data-count="100">0</span><span class="stat-plus">%</span>
+            <span class="stat-number" data-count="100">100</span><span class="stat-plus">%</span>
             <span class="stat-label">Safe & Landlord Verified</span>
           </div>
         </div>
@@ -315,57 +318,94 @@ if ($res && $res->num_rows > 0) {
     </section>
 
     <!-- EXPLORE BOARDING HOUSES SECTION -->
-    <section class="browse-section" id="browse-section">
+    <section class="browse-section" id="browse-section" aria-labelledby="browse-title">
       <div class="section-header">
         <div class="section-eyebrow"><i class="fas fa-fire"></i> Featured Listings</div>
-        <h2>Explore Available Boarding Houses & Dorms</h2>
+        <h2 id="browse-title">Explore Available Boarding Houses & Dorms</h2>
         <p>Choose from our top-rated student residences, bedspaces, and private studios with real photos and transparent rates</p>
       </div>
 
       <!-- Filter Tabs -->
-      <div class="filter-tabs-container">
-        <button class="filter-tab active" onclick="filterByTab('all')"><i class="fas fa-th"></i> All Boarding Houses</button>
-        <button class="filter-tab" onclick="filterByTab('Single Room')"><i class="fas fa-user"></i> Single Rooms</button>
-        <button class="filter-tab" onclick="filterByTab('Bedspace')"><i class="fas fa-bed"></i> Bedspaces</button>
-        <button class="filter-tab" onclick="filterByTab('Studio Pad')"><i class="fas fa-door-closed"></i> Studio Pads</button>
-        <button class="filter-tab" onclick="filterByTab('Female Only')"><i class="fas fa-female"></i> Female Only</button>
-        <button class="filter-tab" onclick="filterByTab('budget')"><i class="fas fa-wallet"></i> Budget (Under ₱3.5k)</button>
+      <div class="filter-tabs-container" id="listing-filters" role="group" aria-label="Filter listings">
+        <button type="button" class="filter-tab active" data-tab="all" aria-pressed="true"><i class="fas fa-th" aria-hidden="true"></i> All Boarding Houses</button>
+        <button type="button" class="filter-tab" data-tab="Single Room" aria-pressed="false"><i class="fas fa-user" aria-hidden="true"></i> Single Rooms</button>
+        <button type="button" class="filter-tab" data-tab="Bedspace" aria-pressed="false"><i class="fas fa-bed" aria-hidden="true"></i> Bedspaces</button>
+        <button type="button" class="filter-tab" data-tab="Studio Pad" aria-pressed="false"><i class="fas fa-door-closed" aria-hidden="true"></i> Studio Pads</button>
+        <button type="button" class="filter-tab" data-tab="female" aria-pressed="false"><i class="fas fa-female" aria-hidden="true"></i> Female Only</button>
+        <button type="button" class="filter-tab" data-tab="budget" aria-pressed="false"><i class="fas fa-wallet" aria-hidden="true"></i> Budget (Under ₱3.5k)</button>
+      </div>
+
+      <!-- Results summary, active search filters and sorting -->
+      <div class="listings-toolbar">
+        <div class="listings-summary">
+          <p class="results-count" id="results-count" role="status"><strong><?php echo count($boardingHouses); ?></strong> boarding houses</p>
+          <div class="active-filters" id="active-filters"></div>
+        </div>
+        <div class="listings-controls">
+          <button type="button" class="btn-clear-filters" data-action="clear-filters" hidden><i class="fas fa-rotate-left" aria-hidden="true"></i> Clear filters</button>
+          <div class="sort-control">
+            <label for="sort-listings">Sort by</label>
+            <i class="fas fa-arrow-down-wide-short" aria-hidden="true"></i>
+            <select id="sort-listings">
+              <option value="recommended">Recommended</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+              <option value="rating">Top rated</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Boarding Houses Grid -->
       <div class="houses-grid" id="houses-grid">
-        <?php foreach ($boardingHouses as $house): 
+        <?php foreach ($boardingHouses as $house):
           $amenitiesList = is_string($house['amenities']) ? json_decode($house['amenities'], true) : (array)$house['amenities'];
           if (!is_array($amenitiesList)) $amenitiesList = ["Free WiFi", "CCTV Security", "Study Area"];
+          $isNew = isset($house['reviews_count']) && (int)$house['reviews_count'] === 0;
+          $availableRooms = (int)$house['available_rooms'];
+          if ($availableRooms === 0) {
+            $availClass = 'is-full';
+            $availText = 'Fully booked';
+          } elseif ($availableRooms <= 2) {
+            $availClass = 'is-low';
+            $availText = 'Only ' . $availableRooms . ' left';
+          } else {
+            $availClass = '';
+            $availText = $availableRooms . ' rooms left';
+          }
         ?>
-          <div class="house-card" 
-               data-id="<?php echo $house['id']; ?>"
+          <article class="house-card"
+               style="view-transition-name: house-<?php echo (int)$house['id']; ?>"
+               data-id="<?php echo (int)$house['id']; ?>"
                data-name="<?php echo htmlspecialchars($house['name']); ?>"
                data-address="<?php echo htmlspecialchars($house['address']); ?>"
+               data-city="<?php echo htmlspecialchars($house['city']); ?>"
                data-roomtypes="<?php echo htmlspecialchars($house['room_types']); ?>"
                data-gender="<?php echo htmlspecialchars($house['gender_policy']); ?>"
                data-minprice="<?php echo (float)$house['min_price']; ?>"
                data-maxprice="<?php echo (float)$house['max_price']; ?>"
+               data-price="<?php echo htmlspecialchars($house['price_range']); ?>"
                data-amenities='<?php echo htmlspecialchars(json_encode($amenitiesList)); ?>'
                data-image="<?php echo htmlspecialchars($house['image_path']); ?>"
                data-landlord="<?php echo htmlspecialchars($house['landlord_name']); ?>"
                data-phone="<?php echo htmlspecialchars($house['landlord_phone']); ?>"
                data-desc="<?php echo htmlspecialchars($house['description']); ?>"
                data-proximity="<?php echo htmlspecialchars($house['proximity']); ?>"
-               data-avail="<?php echo (int)$house['available_rooms']; ?>"
-               data-rating="<?php echo (isset($house['reviews_count']) && (int)$house['reviews_count'] === 0) ? 'New' : $house['rating']; ?>">
-            
+               data-avail="<?php echo $availableRooms; ?>"
+               data-reviews="<?php echo (int)($house['reviews_count'] ?? 0); ?>"
+               data-rating="<?php echo $isNew ? 'New' : $house['rating']; ?>">
+
             <div class="house-image-wrapper">
-              <img src="<?php echo htmlspecialchars($house['image_path']); ?>" alt="<?php echo htmlspecialchars($house['name']); ?>" loading="lazy">
-              
+              <img src="<?php echo htmlspecialchars($house['image_path']); ?>" alt="Photo of <?php echo htmlspecialchars($house['name']); ?>" loading="lazy" width="640" height="400">
+
               <div class="house-badges">
-                <span class="badge-status"><i class="fas fa-check-circle"></i> Verified</span>
+                <span class="badge-status"><i class="fas fa-check-circle" aria-hidden="true"></i> Verified</span>
                 <?php if ($house['gender_policy'] === 'Female Only'): ?>
-                  <span class="badge-gender female"><i class="fas fa-female"></i> Female Only</span>
+                  <span class="badge-gender female"><i class="fas fa-female" aria-hidden="true"></i> Female Only</span>
                 <?php elseif ($house['gender_policy'] === 'Male Only'): ?>
-                  <span class="badge-gender male"><i class="fas fa-male"></i> Male Only</span>
+                  <span class="badge-gender male"><i class="fas fa-male" aria-hidden="true"></i> Male Only</span>
                 <?php else: ?>
-                  <span class="badge-gender coed"><i class="fas fa-users"></i> <?php echo htmlspecialchars($house['gender_policy']); ?></span>
+                  <span class="badge-gender coed"><i class="fas fa-users" aria-hidden="true"></i> <?php echo htmlspecialchars($house['gender_policy']); ?></span>
                 <?php endif; ?>
               </div>
 
@@ -377,29 +417,31 @@ if ($res && $res->num_rows > 0) {
             <div class="house-details">
               <div class="house-rating-row">
                 <div class="stars">
-                  <?php if (isset($house['reviews_count']) && (int)$house['reviews_count'] === 0): ?>
-                    <span class="badge-new"><i class="fas fa-certificate"></i> New listing</span>
+                  <?php if ($isNew): ?>
+                    <span class="badge-new"><i class="fas fa-certificate" aria-hidden="true"></i> New listing</span>
                   <?php else: ?>
-                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star" aria-hidden="true"></i>
                     <span><?php echo number_format((float)$house['rating'], 1); ?></span>
                     <small>(<?php echo (int)($house['reviews_count'] ?? 25); ?> reviews)</small>
                   <?php endif; ?>
                 </div>
-                <div class="slots-available">
-                  <i class="fas fa-door-open"></i> <strong><?php echo (int)$house['available_rooms']; ?></strong> rooms left
+                <div class="slots-available <?php echo $availClass; ?>">
+                  <i class="fas fa-door-open" aria-hidden="true"></i> <?php echo $availText; ?>
                 </div>
               </div>
 
-              <h3 class="house-title"><?php echo htmlspecialchars($house['name']); ?></h3>
-              <p class="house-location"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($house['address']); ?>, <?php echo htmlspecialchars($house['city']); ?></p>
-              
+              <h3 class="house-title">
+                <button type="button" class="house-title-link" data-action="details"><?php echo htmlspecialchars($house['name']); ?></button>
+              </h3>
+              <p class="house-location"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> <?php echo htmlspecialchars($house['address']); ?>, <?php echo htmlspecialchars($house['city']); ?></p>
+
               <div class="house-proximity">
-                <i class="fas fa-walking"></i> <?php echo htmlspecialchars($house['proximity']); ?>
+                <i class="fas fa-walking" aria-hidden="true"></i> <?php echo htmlspecialchars($house['proximity']); ?>
               </div>
 
               <div class="house-amenities-pills">
                 <?php foreach (array_slice($amenitiesList, 0, 4) as $amenity): ?>
-                  <span class="amenity-pill"><i class="fas fa-check"></i> <?php echo htmlspecialchars($amenity); ?></span>
+                  <span class="amenity-pill"><i class="fas fa-check" aria-hidden="true"></i> <?php echo htmlspecialchars($amenity); ?></span>
                 <?php endforeach; ?>
                 <?php if (count($amenitiesList) > 4): ?>
                   <span class="amenity-pill more">+<?php echo count($amenitiesList) - 4; ?> more</span>
@@ -407,16 +449,23 @@ if ($res && $res->num_rows > 0) {
               </div>
 
               <div class="house-card-footer">
-                <button type="button" class="btn-card-details" onclick="openHouseModal(<?php echo $house['id']; ?>)">
-                  <i class="fas fa-info-circle"></i> View Details
+                <button type="button" class="btn-card-details" data-action="details">
+                  <i class="fas fa-info-circle" aria-hidden="true"></i> View Details
                 </button>
-                <button type="button" class="btn-card-reserve" onclick="initiateBooking(<?php echo $house['id']; ?>)">
-                  <i class="fas fa-calendar-check"></i> Inquire / Book
+                <button type="button" class="btn-card-reserve" data-action="book">
+                  <i class="fas fa-calendar-check" aria-hidden="true"></i> Inquire / Book
                 </button>
               </div>
             </div>
-          </div>
+          </article>
         <?php endforeach; ?>
+      </div>
+
+      <div class="listings-empty" id="listings-empty" hidden>
+        <div class="listings-empty-icon"><i class="fas fa-house-circle-xmark" aria-hidden="true"></i></div>
+        <h3>No boarding houses match your filters</h3>
+        <p>Try another area or a higher budget, or clear the filters to see every listing.</p>
+        <button type="button" class="btn-empty-reset" data-action="clear-filters"><i class="fas fa-rotate-left" aria-hidden="true"></i> Clear all filters</button>
       </div>
     </section>
 
@@ -447,7 +496,7 @@ if ($res && $res->num_rows > 0) {
               <span>Starting from</span>
               <strong>₱3,200 / month</strong>
             </div>
-            <button class="room-cta-btn" onclick="filterByTab('Single Room')">View Single Rooms</button>
+            <button type="button" class="room-cta-btn" data-show-tab="Single Room">View Single Rooms</button>
           </div>
         </div>
 
@@ -469,7 +518,7 @@ if ($res && $res->num_rows > 0) {
               <span>Starting from</span>
               <strong>₱2,200 / month</strong>
             </div>
-            <button class="room-cta-btn featured" onclick="filterByTab('Bedspace')">View Bedspace Listings</button>
+            <button type="button" class="room-cta-btn featured" data-show-tab="Bedspace">View Bedspace Listings</button>
           </div>
         </div>
 
@@ -491,7 +540,7 @@ if ($res && $res->num_rows > 0) {
               <span>Starting from</span>
               <strong>₱6,000 / month</strong>
             </div>
-            <button class="room-cta-btn" onclick="filterByTab('Studio Pad')">View Studio Pads</button>
+            <button type="button" class="room-cta-btn" data-show-tab="Studio Pad">View Studio Pads</button>
           </div>
         </div>
       </div>
@@ -636,133 +685,148 @@ if ($res && $res->num_rows > 0) {
         <p>Everything you need to know about reserving and moving into your new boarding house</p>
       </div>
 
-      <div class="faq-grid">
-        <div class="faq-item">
-          <h4><i class="fas fa-chevron-right"></i> How do I reserve a room or bedspace?</h4>
+      <div class="faq-list">
+        <details class="faq-item" name="faq" open>
+          <summary>How do I reserve a room or bedspace? <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
           <p>Browse our verified listings, click <strong>"Inquire / Book"</strong>, and submit your preferred move-in date. If you already have an account, the reservation request is sent directly to the landlord for confirmation.</p>
-        </div>
-        <div class="faq-item">
-          <h4><i class="fas fa-chevron-right"></i> Are utilities (water & electricity) included?</h4>
+        </details>
+        <details class="faq-item" name="faq">
+          <summary>Are utilities (water & electricity) included? <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
           <p>Most bedspaces include basic water and electric fan usage. For studio units with air conditioning, individual sub-meters or fixed monthly rates apply as detailed on each house card.</p>
-        </div>
-        <div class="faq-item">
-          <h4><i class="fas fa-chevron-right"></i> Can I view the boarding house in person?</h4>
+        </details>
+        <details class="faq-item" name="faq">
+          <summary>Can I view the boarding house in person? <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
           <p>Yes! Every verified listing displays the landlord's contact number and address so you can schedule an on-site ocular visit anytime.</p>
-        </div>
-        <div class="faq-item">
-          <h4><i class="fas fa-chevron-right"></i> What are the typical contract terms?</h4>
+        </details>
+        <details class="faq-item" name="faq">
+          <summary>What are the typical contract terms? <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
           <p>Most boarding houses offer flexible terms: per semester (5 months), 1 year, or month-to-month contracts depending on property policies.</p>
-        </div>
+        </details>
       </div>
     </section>
   </main>
 
-  <!-- PROPERTY DETAILS & INQUIRY MODAL -->
-  <div class="modal-backdrop" id="house-modal" style="display: none;">
-    <div class="modal-card">
-      <button type="button" class="modal-close-btn" onclick="closeHouseModal()">&times;</button>
-      <div class="modal-grid">
-        <div class="modal-media">
-          <img id="modal-img" src="../images/boarding_house_exterior.jpg" alt="Boarding House Image">
-          <div class="modal-media-overlay">
-            <span class="modal-badge-roomtype" id="modal-roomtypes">Single, Bedspace</span>
-            <span class="modal-badge-price" id="modal-price">₱3,500/mo</span>
-          </div>
-        </div>
-        <div class="modal-info">
-          <div class="modal-header-row">
-            <span class="modal-rating"><i class="fas fa-star"></i> <span id="modal-rating">4.9</span> Verified</span>
-            <span class="modal-gender" id="modal-gender">Co-ed</span>
-          </div>
-          <h2 id="modal-title">Oakwood Student Residences</h2>
-          <p class="modal-address"><i class="fas fa-map-marker-alt"></i> <span id="modal-address">24 Acacia Street</span></p>
-          <p class="modal-proximity"><i class="fas fa-walking"></i> <span id="modal-proximity">3 mins walk to Campus</span></p>
-
-          <div class="modal-section">
-            <h4>Description</h4>
-            <p id="modal-desc">Safe, modern boarding house with high-speed internet.</p>
-          </div>
-
-          <div class="modal-section">
-            <h4>Amenities & Inclusions</h4>
-            <div class="modal-amenities-list" id="modal-amenities">
-              <!-- Injected by JS -->
-            </div>
-          </div>
-
-          <div class="modal-section landlord-box">
-            <h4>Landlord & Property Contact</h4>
-            <div class="landlord-info-row">
-              <div><i class="fas fa-user-tie"></i> <strong>Host:</strong> <span id="modal-landlord">Atty. Roberto Dela Cruz</span></div>
-              <div><i class="fas fa-phone-alt"></i> <strong>Phone:</strong> <span id="modal-phone">0917-882-9011</span></div>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <?php if ($isLoggedIn): ?>
-              <button type="button" class="modal-btn-confirm" onclick="proceedToReservation()">
-                <i class="fas fa-calendar-check"></i> Reserve a Room Now
-              </button>
-            <?php else: ?>
-              <a href="register.php" class="modal-btn-confirm">
-                <i class="fas fa-user-plus"></i> Register to Reserve
-              </a>
-              <a href="login.php" class="modal-btn-secondary">
-                <i class="fas fa-sign-in-alt"></i> Login
-              </a>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
+  <!-- PROPERTY DETAILS DIALOG -->
+  <dialog class="bh-dialog house-dialog" id="house-dialog" aria-labelledby="hd-title" closedby="any">
+    <form method="dialog" class="bh-dialog-close-form">
+      <button class="bh-dialog-close" aria-label="Close details"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </form>
+    <div class="hd-media">
+      <img id="hd-img" src="" alt="" width="640" height="400">
+      <span class="hd-gender" id="hd-gender"></span>
     </div>
-  </div>
+    <div class="hd-body">
+      <div class="hd-content">
+        <p class="hd-rating" id="hd-rating"></p>
+        <h2 id="hd-title"></h2>
+        <p class="hd-address"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> <span id="hd-address"></span></p>
+        <p class="hd-proximity"><i class="fas fa-walking" aria-hidden="true"></i> <span id="hd-proximity"></span></p>
 
-  <!-- RESERVATION ACTION MODAL (For Logged In Users) -->
-  <div class="modal-backdrop" id="reserve-modal" style="display: none;">
-    <div class="modal-card small-modal">
-      <button type="button" class="modal-close-btn" onclick="closeReserveModal()">&times;</button>
-      <div class="reserve-form-container">
-        <h3><i class="fas fa-bookmark"></i> Room Reservation Request</h3>
-        <p>Send your reservation request to the landlord for <strong id="reserve-bh-name">Selected Boarding House</strong></p>
-        
-        <form id="public-reserve-form" onsubmit="submitReservationForm(event)">
-          <input type="hidden" id="reserve-bh-id" value="">
-          <input type="hidden" name="csrf_token" id="reserve-csrf" value="<?php echo Security::generateCSRFToken(); ?>">
-
-          <div class="form-field">
-            <label>Target Move-in Date</label>
-            <input type="date" id="reserve-date" required min="<?php echo date('Y-m-d'); ?>" value="<?php echo date('Y-m-d', strtotime('+3 days')); ?>">
+        <dl class="hd-facts">
+          <div>
+            <dt>Monthly rate</dt>
+            <dd id="hd-price"></dd>
           </div>
-
-          <div class="form-field">
-            <label>Duration of Stay</label>
-            <select id="reserve-duration">
-              <option value="1">1 Month (Trial / Transient)</option>
-              <option value="5" selected>1 Semester (5 Months)</option>
-              <option value="10">Academic Year (10 Months)</option>
-              <option value="12">Full Year (12 Months)</option>
-            </select>
+          <div>
+            <dt>Availability</dt>
+            <dd id="hd-avail"></dd>
           </div>
-
-          <div class="form-field">
-            <label>Contact Phone Number</label>
-            <input type="tel" id="reserve-phone" placeholder="e.g. 0917-000-0000" value="<?php echo htmlspecialchars($user['phone_number'] ?? ''); ?>" required>
+          <div>
+            <dt>Room types</dt>
+            <dd id="hd-roomtypes"></dd>
           </div>
+        </dl>
 
-          <div class="form-field">
-            <label>Special Requests or Questions</label>
-            <textarea id="reserve-notes" rows="3" placeholder="e.g. Prefer lower bunk, bringing laptop & desktop, need motorcycle parking..."></textarea>
+        <section class="hd-section" aria-labelledby="hd-about-title">
+          <h3 id="hd-about-title">About this place</h3>
+          <p id="hd-desc"></p>
+        </section>
+
+        <section class="hd-section" aria-labelledby="hd-amenities-title">
+          <h3 id="hd-amenities-title">Amenities & inclusions</h3>
+          <ul class="hd-amenities" id="hd-amenities"></ul>
+        </section>
+
+        <section class="hd-section" aria-labelledby="hd-landlord-title">
+          <h3 id="hd-landlord-title">Landlord</h3>
+          <div class="hd-landlord">
+            <div class="hd-landlord-avatar"><i class="fas fa-user-tie" aria-hidden="true"></i></div>
+            <div>
+              <strong id="hd-landlord"></strong>
+              <a id="hd-phone" href="#"></a>
+            </div>
           </div>
+        </section>
+      </div>
 
-          <div id="reserve-alert" style="display:none; margin-bottom: 12px; font-size: 13px; padding: 10px; border-radius: 6px;"></div>
-
-          <button type="submit" class="modal-btn-confirm" id="btn-submit-reserve">
-            <i class="fas fa-paper-plane"></i> Submit Reservation
+      <div class="hd-actions">
+        <?php if ($isLoggedIn): ?>
+          <button type="button" class="btn-dialog-primary" data-action="book-from-details">
+            <i class="fas fa-calendar-check" aria-hidden="true"></i> Reserve a Room
           </button>
-        </form>
+        <?php else: ?>
+          <a href="register.php" class="btn-dialog-primary"><i class="fas fa-user-plus" aria-hidden="true"></i> Register to Reserve</a>
+          <a href="login.php" class="btn-dialog-secondary"><i class="fas fa-sign-in-alt" aria-hidden="true"></i> Log in</a>
+        <?php endif; ?>
       </div>
     </div>
-  </div>
+  </dialog>
+
+  <!-- RESERVATION DIALOG (logged-in boarders) -->
+  <dialog class="bh-dialog reserve-dialog" id="reserve-dialog" aria-labelledby="rd-title">
+    <form method="dialog" class="bh-dialog-close-form">
+      <button class="bh-dialog-close" aria-label="Close reservation form"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </form>
+    <div class="rd-head">
+      <img id="rd-img" src="" alt="" width="72" height="72">
+      <div>
+        <p class="rd-eyebrow">Reservation request</p>
+        <h2 id="rd-title"></h2>
+        <p class="rd-price" id="rd-price"></p>
+      </div>
+    </div>
+
+    <form id="reserve-form" class="rd-form">
+      <input type="hidden" name="boarding_house_id" id="reserve-bh-id" value="">
+      <input type="hidden" name="csrf_token" value="<?php echo Security::generateCSRFToken(); ?>">
+
+      <div class="rd-row">
+        <div class="form-field">
+          <label for="reserve-date">Move-in date</label>
+          <input type="date" id="reserve-date" name="target_move_in_date" autofocus required min="<?php echo date('Y-m-d'); ?>" value="<?php echo date('Y-m-d', strtotime('+3 days')); ?>">
+        </div>
+        <div class="form-field">
+          <label for="reserve-phone">Contact number</label>
+          <input type="tel" id="reserve-phone" name="contact_phone" autocomplete="tel" placeholder="0917 000 0000" value="<?php echo htmlspecialchars($user['phone_number'] ?? ''); ?>" required>
+        </div>
+      </div>
+
+      <fieldset class="rd-duration">
+        <legend>Length of stay</legend>
+        <div class="rd-duration-options">
+          <label><input type="radio" name="stay_duration_months" value="1"><span><strong>1 month</strong><small>Trial stay</small></span></label>
+          <label><input type="radio" name="stay_duration_months" value="5" checked><span><strong>1 semester</strong><small>5 months</small></span></label>
+          <label><input type="radio" name="stay_duration_months" value="10"><span><strong>School year</strong><small>10 months</small></span></label>
+          <label><input type="radio" name="stay_duration_months" value="12"><span><strong>Full year</strong><small>12 months</small></span></label>
+        </div>
+      </fieldset>
+
+      <div class="form-field">
+        <label for="reserve-notes">Requests or questions <span class="rd-optional">(optional)</span></label>
+        <textarea id="reserve-notes" name="special_requests" rows="3" placeholder="e.g. Prefer lower bunk, need motorcycle parking"></textarea>
+      </div>
+
+      <p class="rd-status" id="reserve-status" role="status"></p>
+
+      <div class="rd-actions">
+        <button type="button" class="btn-dialog-secondary" data-action="close-reserve">Cancel</button>
+        <button type="submit" class="btn-dialog-primary" id="btn-submit-reserve">
+          <i class="fas fa-paper-plane" aria-hidden="true"></i> <span>Send request</span>
+        </button>
+      </div>
+      <p class="rd-note"><i class="fas fa-circle-info" aria-hidden="true"></i> The landlord reviews your request first. You can track it from your dashboard.</p>
+    </form>
+  </dialog>
 
   <footer>
     <div class="footer-content">
@@ -799,10 +863,10 @@ if ($res && $res->num_rows > 0) {
       <div class="footer-section">
         <h3>Room Categories</h3>
         <ul>
-          <li><a href="javascript:filterByTab('Single Room')"><i class="fas fa-angle-right"></i> Private Single Rooms</a></li>
-          <li><a href="javascript:filterByTab('Bedspace')"><i class="fas fa-angle-right"></i> Shared Bedspaces</a></li>
-          <li><a href="javascript:filterByTab('Studio Pad')"><i class="fas fa-angle-right"></i> Executive Studio Pads</a></li>
-          <li><a href="javascript:filterByTab('Female Only')"><i class="fas fa-angle-right"></i> Ladies Dormitories</a></li>
+          <li><a href="#browse-section" data-show-tab="Single Room"><i class="fas fa-angle-right"></i> Private Single Rooms</a></li>
+          <li><a href="#browse-section" data-show-tab="Bedspace"><i class="fas fa-angle-right"></i> Shared Bedspaces</a></li>
+          <li><a href="#browse-section" data-show-tab="Studio Pad"><i class="fas fa-angle-right"></i> Executive Studio Pads</a></li>
+          <li><a href="#browse-section" data-show-tab="female"><i class="fas fa-angle-right"></i> Ladies Dormitories</a></li>
         </ul>
       </div>
 
@@ -823,225 +887,7 @@ if ($res && $res->num_rows > 0) {
   </footer>
 
   <script src="../js/loader.js"></script>
-  <script>
-    // Current active house for modal
-    let activeHouseId = null;
-
-    function openHouseModal(id) {
-      const card = document.querySelector(`.house-card[data-id="${id}"]`);
-      if (!card) return;
-
-      activeHouseId = id;
-      document.getElementById('modal-title').textContent = card.dataset.name;
-      document.getElementById('modal-address').textContent = card.dataset.address;
-      document.getElementById('modal-proximity').textContent = card.dataset.proximity;
-      document.getElementById('modal-desc').textContent = card.dataset.desc;
-      document.getElementById('modal-landlord').textContent = card.dataset.landlord;
-      document.getElementById('modal-phone').textContent = card.dataset.phone;
-      document.getElementById('modal-img').src = card.dataset.image;
-      document.getElementById('modal-roomtypes').textContent = card.dataset.roomtypes;
-      document.getElementById('modal-price').textContent = card.querySelector('.price-amount').textContent;
-      document.getElementById('modal-gender').textContent = card.dataset.gender;
-      document.getElementById('modal-rating').textContent = card.dataset.rating;
-
-      // Amenities
-      try {
-        const amenities = JSON.parse(card.dataset.amenities);
-        const container = document.getElementById('modal-amenities');
-        container.innerHTML = '';
-        amenities.forEach(a => {
-          const span = document.createElement('span');
-          span.className = 'modal-amenity-tag';
-          span.innerHTML = `<i class="fas fa-check-circle"></i> ${a}`;
-          container.appendChild(span);
-        });
-      } catch(e) {}
-
-      document.getElementById('house-modal').style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeHouseModal() {
-      document.getElementById('house-modal').style.display = 'none';
-      document.body.style.overflow = 'auto';
-    }
-
-    function initiateBooking(id) {
-      <?php if (!$isLoggedIn): ?>
-        window.location.href = 'login.php';
-        return;
-      <?php else: ?>
-        const card = document.querySelector(`.house-card[data-id="${id}"]`);
-        if (!card) return;
-        activeHouseId = id;
-        document.getElementById('reserve-bh-id').value = id;
-        document.getElementById('reserve-bh-name').textContent = card.dataset.name;
-        document.getElementById('reserve-modal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      <?php endif; ?>
-    }
-
-    function proceedToReservation() {
-      closeHouseModal();
-      initiateBooking(activeHouseId);
-    }
-
-    function closeReserveModal() {
-      document.getElementById('reserve-modal').style.display = 'none';
-      document.body.style.overflow = 'auto';
-    }
-
-    // Interactive Tab Filtering
-    function filterByTab(category) {
-      document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
-      const activeBtn = event ? event.target.closest('.filter-tab') : null;
-      if (activeBtn) activeBtn.classList.add('active');
-
-      const cards = document.querySelectorAll('.house-card');
-      cards.forEach(card => {
-        const roomtypes = card.dataset.roomtypes.toLowerCase();
-        const gender = card.dataset.gender.toLowerCase();
-        const minPrice = parseFloat(card.dataset.minprice);
-
-        if (category === 'all') {
-          card.style.display = 'flex';
-        } else if (category === 'budget') {
-          card.style.display = minPrice <= 3500 ? 'flex' : 'none';
-        } else if (category === 'Female Only') {
-          card.style.display = gender.includes('female') ? 'flex' : 'none';
-        } else {
-          card.style.display = roomtypes.includes(category.toLowerCase()) ? 'flex' : 'none';
-        }
-      });
-
-      // Scroll to browse section if triggered
-      const section = document.getElementById('browse-section');
-      if (section && event && event.type === 'click') {
-        section.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-
-    // Hero Search Handler
-    function executeSearch() {
-      const loc = document.getElementById('filter-location').value.toLowerCase().trim();
-      const roomType = document.getElementById('filter-room-type').value.toLowerCase().trim();
-      const maxBudget = parseFloat(document.getElementById('filter-budget').value) || 999999;
-
-      const cards = document.querySelectorAll('.house-card');
-      let visibleCount = 0;
-
-      cards.forEach(card => {
-        const name = card.dataset.name.toLowerCase();
-        const address = card.dataset.address.toLowerCase();
-        const proximity = card.dataset.proximity.toLowerCase();
-        const roomtypes = card.dataset.roomtypes.toLowerCase();
-        const minPrice = parseFloat(card.dataset.minprice);
-
-        const matchLoc = !loc || name.includes(loc) || address.includes(loc) || proximity.includes(loc);
-        const matchRoom = !roomType || roomtypes.includes(roomType);
-        const matchPrice = minPrice <= maxBudget;
-
-        if (matchLoc && matchRoom && matchPrice) {
-          card.style.display = 'flex';
-          visibleCount++;
-        } else {
-          card.style.display = 'none';
-        }
-      });
-
-      document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Quick tag filter
-    function quickFilter(term) {
-      const cards = document.querySelectorAll('.house-card');
-      cards.forEach(card => {
-        const text = (card.dataset.amenities + ' ' + card.dataset.gender + ' ' + card.dataset.roomtypes).toLowerCase();
-        if (text.includes(term.toLowerCase())) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
-        }
-      });
-      document.getElementById('browse-section').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Submit Reservation
-    async function submitReservationForm(e) {
-      e.preventDefault();
-      const houseId = document.getElementById('reserve-bh-id').value;
-      const moveInDate = document.getElementById('reserve-date').value;
-      const duration = document.getElementById('reserve-duration').value;
-      const phone = document.getElementById('reserve-phone').value;
-      const notes = document.getElementById('reserve-notes').value;
-      const csrf = document.getElementById('reserve-csrf').value;
-      const alertBox = document.getElementById('reserve-alert');
-      const submitBtn = document.getElementById('btn-submit-reserve');
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-
-      try {
-        const res = await fetch('user_actions.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'reserve_boarding_house',
-            boarding_house_id: houseId,
-            target_move_in_date: moveInDate,
-            stay_duration_months: duration,
-            contact_phone: phone,
-            special_requests: notes,
-            csrf_token: csrf
-          })
-        });
-
-        const data = await res.json();
-        alertBox.style.display = 'block';
-
-        if (data.success) {
-          alertBox.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
-          alertBox.style.border = '1px solid #10b981';
-          alertBox.style.color = '#10b981';
-          alertBox.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
-          setTimeout(() => {
-            closeReserveModal();
-            window.location.href = 'dashboard.php#bookings';
-          }, 1500);
-        } else {
-          alertBox.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-          alertBox.style.border = '1px solid #ef4444';
-          alertBox.style.color = '#ef4444';
-          alertBox.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.message}`;
-        }
-      } catch (err) {
-        alertBox.style.display = 'block';
-        alertBox.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-        alertBox.style.border = '1px solid #ef4444';
-        alertBox.style.color = '#ef4444';
-        alertBox.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network error. Please try again.';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Reservation';
-      }
-    }
-
-    // Close modal on escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeHouseModal();
-        closeReserveModal();
-      }
-    });
-
-    // Close on clicking backdrop
-    window.onclick = function(e) {
-      const houseModal = document.getElementById('house-modal');
-      const reserveModal = document.getElementById('reserve-modal');
-      if (e.target === houseModal) closeHouseModal();
-      if (e.target === reserveModal) closeReserveModal();
-    };
-  </script>
+  <script src="../js/home.js?v=<?php echo filemtime(__DIR__ . '/../js/home.js'); ?>"></script>
 </body>
 
 </html>

@@ -17,6 +17,8 @@ if (Auth::needsFirstLoginSetup()) {
 
 $user = $_SESSION['user'];
 $isSuperAdmin = Auth::isSuperAdmin();
+$superAdminCount = Auth::countSuperAdminAccounts();
+$superAdminLimitReached = $superAdminCount >= MAX_SUPER_ADMINS;
 
 // Only Super Admin can create Super Admin/Admin accounts directly
 if (!$isSuperAdmin) {
@@ -190,9 +192,12 @@ $csrfToken = Security::generateCSRFToken();
                 <label><i class="fas fa-user-shield" style="color: var(--accent);"></i> Account Role *</label>
                 <select id="create-role" onchange="handleCreateRoleChange(this.value)" required>
                   <option value="admin" selected>Administrator</option>
-                  <option value="superadmin">Super Administrator</option>
+                  <option value="superadmin" <?php echo $superAdminLimitReached ? 'disabled' : ''; ?>>Super Administrator<?php echo $superAdminLimitReached ? ' (limit reached)' : ''; ?></option>
                   <option value="user">Regular User</option>
                 </select>
+                <small style="color: <?php echo $superAdminLimitReached ? '#fbbf24' : '#94a3b8'; ?>; font-size: 11px;">
+                  Super Admin accounts: <?php echo $superAdminCount; ?> of <?php echo MAX_SUPER_ADMINS; ?> in use<?php echo $superAdminLimitReached ? ". To add one, change the standby Super Admin's role or delete that account." : ''; ?>
+                </small>
               </div>
 
               <div class="form-field">
@@ -299,9 +304,7 @@ $csrfToken = Security::generateCSRFToken();
                 <label class="privilege-item"><input type="checkbox" id="create_priv_can_view_reports" checked><div><strong>View System Logs</strong><div style="font-size: 11px; color: #94a3b8;">Audit trail & login history</div></div></label>
                 <label class="privilege-item"><input type="checkbox" id="create_priv_can_export_logs" checked><div><strong>Export Logs</strong><div style="font-size: 11px; color: #94a3b8;">Download reports & trails</div></div></label>
                 <label class="privilege-item"><input type="checkbox" id="create_priv_can_manage_classes" checked><div><strong>Manage Classes</strong><div style="font-size: 11px; color: #94a3b8;">Schedules & trainers</div></div></label>
-                <label class="privilege-item"><input type="checkbox" id="create_priv_can_manage_bookings" checked><div><strong>Manage Bookings</strong><div style="font-size: 11px; color: #94a3b8;">Class reservations</div></div></label>
-                <label class="privilege-item"><input type="checkbox" id="create_priv_can_manage_metrics" checked><div><strong>Fitness Metrics</strong><div style="font-size: 11px; color: #94a3b8;">BMIs & workout logs</div></div></label>
-              </div>
+                <label class="privilege-item"><input type="checkbox" id="create_priv_can_manage_bookings" checked><div><strong>Manage Bookings</strong><div style="font-size: 11px; color: #94a3b8;">Class reservations</div></div></label>              </div>
             </div>
 
             <script>
@@ -309,14 +312,14 @@ $csrfToken = Security::generateCSRFToken();
                 'can_approve_users', 'can_block_users', 'can_update_info', 'can_manage_roles', 'can_create_accounts',
                 'can_manage_requests',
                 'can_view_reports', 'can_export_logs',
-                'can_manage_classes', 'can_manage_bookings', 'can_manage_metrics'
+                'can_manage_classes', 'can_manage_bookings'
               ];
 
               const ALL_CREATE_PRIVILEGE_KEYS = [
                 'can_approve_users', 'can_block_users', 'can_update_info', 'can_manage_roles', 'can_create_accounts',
                 'can_delete_users', 'can_manage_requests', 'can_give_privileges',
                 'can_view_reports', 'can_export_logs',
-                'can_manage_classes', 'can_manage_bookings', 'can_manage_metrics'
+                'can_manage_classes', 'can_manage_bookings'
               ];
 
               function handleCreateRoleChange(role) {

@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once '../includes/security.php';
 require_once '../includes/auth.php';
+require_once '../includes/validation.php';
 
 // Redirect if already logged in
 if (Auth::isLoggedIn()) {
@@ -45,10 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCSRFToken($_POST['c
     // Store the username in session for refresh persistence
     $_SESSION['last_login_attempt'] = $username;
 
-    // Add input validation
-    if (strlen($username) < 3 || strlen($username) > 20 || !preg_match('/^[a-zA-Z0-9]+$/', $username)) {
-        $errors[] = "Username must be 3-20 characters (letters and numbers only)";
-    }
+    // Same rule as registration and account creation, so every valid username can log in
+    $errors = array_merge($errors, Validation::validateUsername($username));
 
     if (strlen($password) < 8 || strlen($password) > 128) {
         $errors[] = "Password must be 8-128 characters long";
@@ -85,6 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Security::verifyCSRFToken($_POST['c
                 exit();
             } elseif ($userStatus === 'pending') {
                 $errors[] = "Your account registration is pending approval by an administrator.";
+            } elseif ($userStatus === 'blocked' && ($user['role'] ?? '') === 'superadmin') {
+                $errors[] = "This Super Admin account is on standby. Only one Super Admin can be active at a time, so ask the active Super Admin to hand over access.";
             } elseif ($userStatus === 'blocked') {
                 $errors[] = "Your account has been blocked by an administrator.";
             } else {
