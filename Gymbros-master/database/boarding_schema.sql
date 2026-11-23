@@ -1,5 +1,5 @@
 -- BoardingHub Database Schema & Seed Data
-USE `gym_Bros`;
+USE `boardinghub`;
 
 CREATE TABLE IF NOT EXISTS `boarding_houses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

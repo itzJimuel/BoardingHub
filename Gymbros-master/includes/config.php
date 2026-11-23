@@ -10,7 +10,7 @@ ini_set('display_errors', 1);
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root'); // Change if different
 define('DB_PASS', ''); // Change if you have a password
-define('DB_NAME', 'gym_Bros');
+define('DB_NAME', 'boardinghub');
 define('MAX_LOGIN_ATTEMPTS', 3);
 define('MAX_SUPER_ADMINS', 2); // Super Admin accounts allowed in total: one active, the rest on standby
 define('LOCKOUT_TIMES', [15, 30, 60]);
