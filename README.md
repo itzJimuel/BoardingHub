@@ -35,7 +35,7 @@ PHP · MySQL / MariaDB · JavaScript · HTML · CSS · Font Awesome
 
 1. Install [XAMPP](https://www.apachefriends.org/) and start **Apache** and **MySQL**.
 2. Copy the `Gymbros-master` folder into `C:\xampp\htdocs\`.
-3. Open [phpMyAdmin](http://localhost/phpmyadmin), create a database named **`gym_Bros`**, then import these files from `Gymbros-master/database/` **in this order**:
+3. Open [phpMyAdmin](http://localhost/phpmyadmin), create a database named **`boardinghub`**, then import these files from `Gymbros-master/database/` **in this order**:
    1. `gym_Bros (1).sql`
    2. `update_schema.sql`
    3. `boarding_schema.sql`

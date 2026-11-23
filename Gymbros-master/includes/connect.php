@@ -3,7 +3,7 @@
 $host = 'localhost';
 $user = 'root';
 $password = '';
-$db = 'gym_Bros';
+$db = 'boardinghub';
 
 $conn = mysqli_connect($host, $user, $password, $db);
 

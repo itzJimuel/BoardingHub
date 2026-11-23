@@ -1,6 +1,6 @@
 -- GymBros Database Schema Update for Super Admin & Admin Roles
 
-USE `gym_Bros`;
+USE `boardinghub`;
 
 -- Add role, status, and privileges columns to users table if not existing
 SET @dbname = DATABASE();
